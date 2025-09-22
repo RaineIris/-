@@ -187,10 +187,19 @@
             </div>
             <div id="loading-indicator"><p>AI正在奋笔疾书...</p><div class="spinner"></div></div>
             <div id="result-area"><p id="result-placeholder">This is 用餐区域^^</p></div>
-            <div id="result-actions" class="btn-group">
-                <button class="btn btn-secondary" id="archive-and-restart-btn">归档并重开</button>
-                <button class="btn" id="continue-writing-btn">继续写</button>
-            </div>
+            <div id="result-actions" style="display: none; flex-direction: column; gap: 15px;">
+    <div id="version-navigator" style="display: none; justify-content: center; align-items: center; gap: 15px;">
+        <button class="btn btn-secondary btn-small" id="prev-version-btn" style="width: 50px;">&lt;</button>
+        <span id="version-display" style="font-weight: 500;">版本 1/1</span>
+        <button class="btn btn-secondary btn-small" id="next-version-btn" style="width: 50px;">&gt;</button>
+    </div>
+    <div class="btn-group">
+        <button class="btn btn-secondary" id="archive-and-restart-btn">归档并重开</button>
+        <button class="btn btn-secondary" id="regenerate-btn">重新生成</button>
+        <button class="btn" id="continue-writing-btn">继续写</button>
+    </div>
+</div>
+
         </div>
     </div>
     
@@ -204,6 +213,8 @@
                 <div class="custom-select-wrapper"><div class="custom-select" id="model-select-container"><div class="custom-select-trigger" id="model-select-trigger"><span>选择模型</span></div><div class="custom-options" id="model-options"></div></div></div>
                 <p id="api-status"></p>
                 <button class="btn btn-secondary btn-small" id="connect-api-btn">连接/刷新</button>
+                <button class="btn btn-secondary btn-small" id="test-api-btn" style="margin-left: 10px;">测试连接</button>
+
             </div>
             <hr style="border:none; border-top: 1px solid #e2e8f0; margin: 25px 0;">
             <div id="prompt-management-area">
@@ -828,6 +839,9 @@ identity_and_output_safeguards:
         const saveSettingsBtn = document.getElementById('save-settings-btn');
 
         let currentSession = { chapters: [], page2Inputs: {} };
+        let regenerationCandidates = [];
+        let currentCandidateIndex = -1;
+        let lastGenerationContext = null;
 
         const showAlert = message => {
             document.getElementById('custom-alert-message').textContent = message;
@@ -1687,29 +1701,34 @@ but the door opened.”
         backToPage1Btn.addEventListener('click', () => showPage(page1));
         
         continueWritingBtn.addEventListener('click', () => {
-            document.getElementById('detailed-requirements').value = '';
-            document.querySelector('.page2-header').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+    commitCurrentCandidate();
+    renderResultArea(currentSession.chapters.slice(-1)[0].content);
+    document.getElementById('version-navigator').style.display = 'none';
+    document.getElementById('detailed-requirements').value = '';
+    document.querySelector('.page2-header').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
 
         archiveAndRestartBtn.addEventListener('click', () => {
-            const nameInput = document.getElementById('save-story-name');
-            const date = new Date();
-            nameInput.value = `创作于${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-            saveStoryModal.classList.add('active');
-        });
+    commitCurrentCandidate();
+    const nameInput = document.getElementById('save-story-name');
+    const date = new Date();
+    nameInput.value = `创作于${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    saveStoryModal.classList.add('active');
+});
+
         document.getElementById('save-story-confirm').addEventListener('click', () => {
-             const name = document.getElementById('save-story-name').value.trim();
-             if (!name) { showAlert('请输入一个标题！'); return; }
-             const stories = JSON.parse(localStorage.getItem('savedStories') || '[]');
-             stories.push({ ...currentSession, name: name, id: `story_${Date.now()}` });
-             localStorage.setItem('savedStories', JSON.stringify(stories));
-             saveStoryModal.classList.remove('active');
-             clearCurrentSession();
-        });
-        document.getElementById('save-story-cancel').addEventListener('click', () => {
-            saveStoryModal.classList.remove('active');
-            clearCurrentSession();
-        });
+     const name = document.getElementById('save-story-name').value.trim();
+     if (!name) { showAlert('请输入一个标题！'); return; }
+     const stories = JSON.parse(localStorage.getItem('savedStories') || '[]');
+     // 只保存核心的章节数据
+     const storyToSave = { chapters: currentSession.chapters };
+     stories.push({ ...storyToSave, name: name, id: `story_${Date.now()}` });
+     localStorage.setItem('savedStories', JSON.stringify(stories));
+     saveStoryModal.classList.remove('active');
+     clearCurrentSession();
+});
+
         
         saveSettingsBtn.addEventListener('click', () => {
             localStorage.setItem('apiUrl', apiUrlInput.value.trim());
@@ -1766,76 +1785,248 @@ but the door opened.”
                 apiStatus.textContent = `连接错误: ${error.message}`; apiStatus.style.color = 'red';
             }
         });
-        generateBtn.addEventListener('click', async () => {
-            const apiUrl = localStorage.getItem('apiUrl'), apiKey = localStorage.getItem('apiKey'), selectedModel = localStorage.getItem('selectedModel');
-            if (!apiUrl || !apiKey) { showAlert('请先设置API和密钥！'); settingsModal.classList.add('active'); return; }
-            if (!selectedModel) { showAlert('请先选择一个模型！'); settingsModal.classList.add('active'); return; }
-            
-            loadingIndicator.style.display = 'block'; generateBtn.disabled = true;
-            resultPlaceholder.style.display = 'none'; resultArea.innerHTML = '';
+        document.getElementById('test-api-btn').addEventListener('click', async () => {
+    const apiUrl = apiUrlInput.value.trim().replace(/\/$/, '');
+    const apiKey = apiKeyInput.value.trim();
+    const selectedModel = localStorage.getItem('selectedModel');
 
-            const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
-            const jailbreakPrompts = getEnabledPromptsContent('jailbreakPrompts');
-            const forbiddenPrompts = getEnabledPromptsContent('forbiddenPrompts');
-            const stylePrompts = getEnabledPromptsContent('stylePrompts');
-            const otherPrompts = getEnabledPromptsContent('otherPrompts');
-            const maincharName = document.getElementById('mainchar-name').value.trim();
-            const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
-            const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
-            const fullStoryContext = currentSession.chapters.map(c => c.content).join('\n\n');
-            
-            const finalPrompt = [
-                jailbreakPrompts, forbiddenPrompts, processedWeldedPrompt,
-                stylePrompts, otherPrompts,
-                `----------\n【历史上下文，这是你需要续写的故事】:\n${fullStoryContext}`,
-                `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
-                `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`,
-                `\n----------\n【续写开始】:\n(你的回答将从这里开始，直接续写故事，不要包含任何【】方括号或重复上面的任何内容)`
-            ].filter(Boolean).join('\n\n');
-            
-            try {
-                const response = await fetch(`${apiUrl.replace(/\/$/, '')}/chat/completions`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-                    body: JSON.stringify({ model: selectedModel, messages: [{ role: "user", content: finalPrompt }] })
-                });
-                if (!response.ok) { const err = await response.json(); throw new Error(`API错误: ${response.status} ${JSON.stringify(err)}`); }
-                const data = await response.json();
-                const newContent = data.choices[0]?.message?.content || "返回内容为空。";
-                currentSession.chapters.push({type: 'continuation', content: newContent});
-                renderResultArea(newContent);
-                saveCurrentSession();
-            } catch (error) {
-                showAlert(`生成失败！\n${error.message}`);
-                resultPlaceholder.style.display = 'block';
-            } finally {
-                loadingIndicator.style.display = 'none'; generateBtn.disabled = false;
-            }
+    if (!apiUrl || !apiKey) {
+        showAlert('请先填写 API 地址和密钥。');
+        return;
+    }
+    if (!selectedModel) {
+        showAlert('请先连接并选择一个模型用于测试。');
+        return;
+    }
+
+    apiStatus.textContent = '正在测试连接...';
+    apiStatus.style.color = 'orange';
+
+    try {
+        const response = await fetch(`${apiUrl}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({
+                model: selectedModel,
+                messages: [{ role: "user", content: "Hello" }],
+                max_tokens: 5
+            })
         });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(`连接失败 (${response.status}): ${errData.error?.message || JSON.stringify(errData)}`);
+        }
+
+        await response.json(); 
+        apiStatus.textContent = '测试连接成功！API 和模型均可用。';
+        apiStatus.style.color = 'green';
+
+    } catch (error) {
+        apiStatus.textContent = `测试失败: ${error.message}`;
+        apiStatus.style.color = 'red';
+    }
+});
+
+        // ==================== 新代码块 1 开始 ====================
+generateBtn.addEventListener('click', async () => {
+    const apiUrl = localStorage.getItem('apiUrl'), apiKey = localStorage.getItem('apiKey'), selectedModel = localStorage.getItem('selectedModel');
+    if (!apiUrl || !apiKey) { showAlert('请先设置API和密钥！'); settingsModal.classList.add('active'); return; }
+    if (!selectedModel) { showAlert('请先选择一个模型！'); settingsModal.classList.add('active'); return; }
+
+    // 确保操作按钮区先隐藏
+    resultActions.style.display = 'none';
+    loadingIndicator.style.display = 'block';
+    generateBtn.disabled = true;
+    resultPlaceholder.style.display = 'none';
+    resultArea.innerHTML = '';
+
+    // 【修复点】在这里，我们把当前已保存的章节作为“基础上下文”固定下来
+    lastGenerationContext = currentSession.chapters.map(c => c.content).join('\n\n');
+
+    const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
+    const maincharName = document.getElementById('mainchar-name').value.trim();
+    const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
+    const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
+
+    const finalPrompt = [
+        getEnabledPromptsContent('jailbreakPrompts'), getEnabledPromptsContent('forbiddenPrompts'), processedWeldedPrompt,
+        getEnabledPromptsContent('stylePrompts'), getEnabledPromptsContent('otherPrompts'),
+        // 【修复点】调用固定的“基础上下文”
+        `----------\n【历史上下文，这是你需要续写的故事】:\n${lastGenerationContext}`,
+        `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
+        `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`,
+        `\n----------\n【续写开始】:\n(你的回答将从这里开始，直接续写故事，不要包含任何【】方括号或重复上面的任何内容)`
+    ].filter(Boolean).join('\n\n');
+
+    try {
+        const response = await fetch(`${apiUrl.replace(/\/$/, '')}/chat/completions`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({ model: selectedModel, messages: [{ role: "user", content: finalPrompt }] })
+        });
+        if (!response.ok) { const err = await response.json(); throw new Error(`API错误: ${response.status} ${JSON.stringify(err)}`); }
+        const data = await response.json();
+        const newContent = data.choices[0]?.message?.content || "返回内容为空。";
+
+        // 【修复点】将首次生成的内容作为候选列表的第一个，而不是直接保存
+        regenerationCandidates = [newContent];
+        currentCandidateIndex = 0;
+        renderCandidatesUI();
+
+    } catch (error) {
+        showAlert(`生成失败！\n${error.message}`);
+        resetResultArea();
+    } finally {
+        loadingIndicator.style.display = 'none';
+        generateBtn.disabled = false;
+    }
+});
+// ==================== 新代码块 1 结束 ====================
+
+        // ==================== 新代码块 2 开始 ====================
+function renderCandidatesUI() {
+    if (currentCandidateIndex === -1 || regenerationCandidates.length === 0) {
+        resetResultArea();
+        document.getElementById('version-navigator').style.display = 'none';
+        return;
+    }
+
+    resultPlaceholder.style.display = 'none';
+    resultArea.innerText = regenerationCandidates[currentCandidateIndex];
+    resultActions.style.display = 'flex';
+
+    const versionNavigator = document.getElementById('version-navigator');
+    const versionDisplay = document.getElementById('version-display');
+
+    if (regenerationCandidates.length > 1) {
+        versionNavigator.style.display = 'flex';
+        versionDisplay.textContent = `版本 ${currentCandidateIndex + 1}/${regenerationCandidates.length}`;
+    } else {
+        versionNavigator.style.display = 'none';
+    }
+
+    document.getElementById('prev-version-btn').disabled = (currentCandidateIndex === 0);
+    document.getElementById('next-version-btn').disabled = (currentCandidateIndex === regenerationCandidates.length - 1);
+}
+
+async function handleRegenerate() {
+    const regenerateBtn = document.getElementById('regenerate-btn');
+    regenerateBtn.disabled = true;
+    regenerateBtn.textContent = '生成中...';
+    loadingIndicator.style.display = 'block';
+
+    const apiUrl = localStorage.getItem('apiUrl'), apiKey = localStorage.getItem('apiKey'), selectedModel = localStorage.getItem('selectedModel');
+
+    const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
+    const maincharName = document.getElementById('mainchar-name').value.trim();
+    const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
+    const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
+
+    const finalPrompt = [
+        getEnabledPromptsContent('jailbreakPrompts'), getEnabledPromptsContent('forbiddenPrompts'), processedWeldedPrompt,
+        getEnabledPromptsContent('stylePrompts'), getEnabledPromptsContent('otherPrompts'),
+        // 【修复点】重新生成时，依然使用最开始固定的那个“基础上下文”
+        `----------\n【历史上下文，这是你需要续写的故事】:\n${lastGenerationContext}`,
+        `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
+        `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`,
+        `\n----------\n【续写开始】:\n`
+    ].filter(Boolean).join('\n\n');
+
+    try {
+        const response = await fetch(`${apiUrl.replace(/\/$/, '')}/chat/completions`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+            body: JSON.stringify({ model: selectedModel, messages: [{ role: "user", content: finalPrompt }] })
+        });
+        if (!response.ok) { const err = await response.json(); throw new Error(`API错误: ${response.status} ${JSON.stringify(err)}`); }
+        const data = await response.json();
+        const newContent = data.choices[0]?.message?.content || "返回内容为空。";
+
+        // 【修复点】将新生成的内容“添加”到候选列表，而不是覆盖
+        regenerationCandidates.push(newContent);
+        currentCandidateIndex = regenerationCandidates.length - 1; // 自动跳到最新版本
+        renderCandidatesUI();
+
+    } catch(error) {
+         showAlert(`重新生成失败！\n${error.message}`);
+    } finally {
+        loadingIndicator.style.display = 'none';
+        regenerateBtn.disabled = false;
+        regenerateBtn.textContent = '重新生成';
+    }
+}
+
+function commitCurrentCandidate() {
+    // 【修复点】这是唯一一个能将“候选内容”存入“历史”的地方
+    if (currentCandidateIndex !== -1 && regenerationCandidates.length > 0) {
+        const chosenContent = regenerationCandidates[currentCandidateIndex];
+        currentSession.chapters.push({type: 'continuation', content: chosenContent});
+
+        // 提交后，清空所有临时状态，为下一次生成做准备
+        regenerationCandidates = [];
+        currentCandidateIndex = -1;
+        lastGenerationContext = null;
+        saveCurrentSession();
+    }
+}
+// ==================== 新代码块 2 结束 ====================
+
+
+// 使用一个集中的点击事件监听器来处理新按钮
+document.addEventListener('click', e => {
+    const targetId = e.target.id;
+    if (targetId === 'regenerate-btn') {
+        handleRegenerate();
+    }
+    if (targetId === 'prev-version-btn') {
+        if (currentCandidateIndex > 0) {
+            currentCandidateIndex--;
+            renderCandidatesUI();
+        }
+    }
+    if (targetId === 'next-version-btn') {
+        if (currentCandidateIndex < regenerationCandidates.length - 1) {
+            currentCandidateIndex++;
+            renderCandidatesUI();
+        }
+    }
+});
+
         
-        viewContextBtn.addEventListener('click', () => {
-            const contentDiv = document.getElementById('context-viewer-content');
-            contentDiv.innerHTML = ''; 
+        // ==================== 新代码块 3 开始 ====================
+viewContextBtn.addEventListener('click', () => {
+    const contentDiv = document.getElementById('context-viewer-content');
+    contentDiv.innerHTML = '';
 
-            if (!currentSession.chapters || currentSession.chapters.length === 0) {
-                contentDiv.innerText = "当前没有上下文。";
-            } else {
-                currentSession.chapters.forEach((chapter, index) => {
-                    const details = document.createElement('details');
-                    const summary = document.createElement('summary');
-                    const contentP = document.createElement('div');
-                    
-                    summary.textContent = (index === 0) ? '📖 原文' : `✍️ 第 ${index} 次续写`;
-                    
-                    contentP.className = 'context-chapter-content';
-                    contentP.innerText = chapter.content;
+    // 【修复点】如果正在选择版本，则添加提示信息
+    if (currentCandidateIndex > -1) {
+        const notice = document.createElement('p');
+        notice.style.cssText = "text-align: center; padding: 10px; background-color: #e0f2fe; border-radius: 8px; margin: 0 15px 15px;";
+        notice.textContent = "正在选择新版本，此处仅显示已保存的历史内容。";
+        contentDiv.appendChild(notice);
+    }
 
-                    details.appendChild(summary);
-                    details.appendChild(contentP);
-                    contentDiv.appendChild(details);
-                });
-            }
-            contextViewerModal.classList.add('active');
+    if (!currentSession.chapters || currentSession.chapters.length === 0) {
+        contentDiv.insertAdjacentHTML('beforeend', "<p>当前没有已保存的上下文。</p>");
+    } else {
+        currentSession.chapters.forEach((chapter, index) => {
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            const contentP = document.createElement('div');
+
+            summary.textContent = (index === 0) ? '📖 原文' : `✍️ 第 ${index} 次续写 (已保存)`;
+
+            contentP.className = 'context-chapter-content';
+            contentP.innerText = chapter.content;
+
+            details.appendChild(summary);
+            details.appendChild(contentP);
+            contentDiv.appendChild(details);
         });
+    }
+    contextViewerModal.classList.add('active');
+});
+// ==================== 新代码块 3 结束 ====================
+
        
         
 fileUpload.addEventListener('change', async (event) => {
