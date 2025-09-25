@@ -2044,7 +2044,7 @@ saveSettingsBtn.addEventListener('click', () => {
                 openPromptEditor('add', key);
             });
         });
-        modelSelectTrigger.addEventListener('click', () => modelSelectContainer.classList.toggle('open'));
+        modelSelectTrigger.addEventListener('click', (e) => { e.stopPropagation(); modelSelectContainer.classList.toggle('open'); });
         modelOptionsContainer.addEventListener('click', e => {
             if (e.target.classList.contains('custom-option')) {
                 modelSelectTriggerText.textContent = e.target.dataset.value;
@@ -2246,7 +2246,8 @@ saveSettingsBtn.addEventListener('click', () => {
 
         // 为副API的下拉菜单添加关闭逻辑
         const secondaryModelSelectContainer = document.getElementById('secondary-model-select-container');
-        secondaryModelSelectContainer.querySelector('.custom-select-trigger').addEventListener('click', () => {
+        secondaryModelSelectContainer.querySelector('.custom-select-trigger').addEventListener('click', (e) => {
+            e.stopPropagation();
             secondaryModelSelectContainer.classList.toggle('open');
         });
         window.addEventListener('click', e => {
@@ -3172,6 +3173,7 @@ document.getElementById('show-changelog-btn').addEventListener('click', (e) => {
 * 新增: API自动故障转移，现在主API失败后会自动尝试使用副API了
 - 优化：采用AI识图，准确率+++
 - 优化：现在的API地址加不加/v1都行了，总裁您随便选喵
++ 修复：各种乱七八糟的bug
 </textarea>
 <div id="changelog-modal" class="modal-overlay">
     <div class="modal-content">
