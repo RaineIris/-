@@ -1131,6 +1131,19 @@ identity_and_output_safeguards:
             document.getElementById('custom-alert-message').textContent = message;
             customAlertModal.classList.add('active');
         };
+        function commitCurrentCandidate() {
+            if (currentCandidateIndex > -1 && regenerationCandidates[currentCandidateIndex]) {
+                const newContent = regenerationCandidates[currentCandidateIndex];
+                currentSession.chapters.push({ type: 'generated', content: newContent });
+                
+                // 为下一轮重置
+                regenerationCandidates = [];
+                currentCandidateIndex = -1;
+                
+                // 保存更新后的会话
+                saveCurrentSession();
+            }
+        }
 
         const showConfirm = (message) => {
             return new Promise(resolve => {
