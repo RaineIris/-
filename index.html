@@ -288,6 +288,7 @@
                     <label class="label">内容</label>
                     <div class="choices" id="content-rating">
                         <input type="radio" name="content_rating" value="SFW" id="rating-sfw"><label for="rating-sfw">SFW</label>
+                        <input type="radio" name="content_rating" value="auto" id="rating-auto" checked><label for="rating-auto">AUTO</label>
                         <input type="radio" name="content_rating" value="NSFW" id="rating-nsfw"><label for="rating-nsfw">NSFW</label>
                     </div>
                 </div>
@@ -2245,9 +2246,8 @@ saveSettingsBtn.addEventListener('click', () => {
         // --- 新增代码结束 ---
 
 
-// --- “生成”按钮功能 (V3版 - 支持API故障转移) ---
+// --- “生成”按钮功能 (V4版 - 支持SFW切换) ---
 generateBtn.addEventListener('click', async () => {
-    // 准备两套API配置
     const apiConfigs = [
         { name: '主API', url: normalizeApiUrl(localStorage.getItem('apiUrl')), key: localStorage.getItem('apiKey'), model: localStorage.getItem('selectedModel') },
         { name: '副API', url: normalizeApiUrl(localStorage.getItem('secondaryApiUrl')), key: localStorage.getItem('secondaryApiKey'), model: localStorage.getItem('secondarySelectedModel') }
@@ -2262,35 +2262,50 @@ generateBtn.addEventListener('click', async () => {
     generateBtn.disabled = true;
     resultPlaceholder.style.display = 'none';
     resultArea.innerHTML = '';
-    
-    // 【修复点】在这里，我们把当前已保存的章节作为“基础上下文”固定下来
     lastGenerationContext = currentSession.chapters.map(c => c.content).join('\n\n');
-
+    
+    // 【核心改造】根据内容选项决定提示词组合
+    const contentRating = document.querySelector('input[name="content_rating"]:checked')?.value;
     const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
     const maincharName = document.getElementById('mainchar-name').value.trim();
     const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
     const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
 
-    const finalPrompt = [
-        getEnabledPromptsContent('jailbreakPrompts'), getEnabledPromptsContent('forbiddenPrompts'), processedWeldedPrompt,
-        getEnabledPromptsContent('stylePrompts'), getEnabledPromptsContent('otherPrompts'),
+    const finalPromptParts = [];
+
+    // 如果不是SFW，就加入破甲词
+    if (contentRating !== 'SFW') {
+        finalPromptParts.push(getEnabledPromptsContent('jailbreakPrompts'));
+    }
+
+    finalPromptParts.push(
+        getEnabledPromptsContent('forbiddenPrompts'),
+        processedWeldedPrompt,
+        getEnabledPromptsContent('stylePrompts'),
+        getEnabledPromptsContent('otherPrompts'),
         `----------\n【历史上下文，这是你需要续写的故事】:\n${lastGenerationContext}`,
         `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
-        `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`,
-        `\n----------\n【续写开始】:\n(你的回答将从这里开始，直接续写故事，不要包含任何【】方括号或重复上面的任何内容)`
-    ].filter(Boolean).join('\n\n');
+        `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`
+    );
+
+    // 如果是SFW，额外加一条严格指令
+    if (contentRating === 'SFW') {
+        finalPromptParts.push('【重要内容限制】：本次续写必须严格遵守SFW（Safe for Work）准则，禁止包含任何色情、暴力或不适宜的成人内容。');
+    }
+
+    finalPromptParts.push(`\n----------\n【续写开始】:\n(你的回答将从这里开始，直接续写故事，不要包含任何【】方括号或重复上面的任何内容)`);
+    
+    const finalPrompt = finalPromptParts.filter(Boolean).join('\n\n');
     
     let success = false;
     let newContent = '';
 
-    // 【核心改造】循环尝试API
     for (let i = 0; i < apiConfigs.length; i++) {
         const config = apiConfigs[i];
         if (!config.url || !config.key || !config.model) {
             if (i === 0) showToast('主API配置不完整，尝试副API...');
             continue; 
         }
-        
         try {
             const response = await fetch(`${config.url}/chat/completions`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
@@ -2303,9 +2318,7 @@ generateBtn.addEventListener('click', async () => {
             break; 
         } catch (error) {
             console.error(`${config.name} 失败:`, error);
-            if (i === 0) { 
-                showToast('主API连接失败，正在尝试使用副API...', 4000);
-            }
+            if (i === 0) { showToast('主API连接失败，正在尝试使用副API...', 4000); }
         }
     }
 
@@ -2348,44 +2361,58 @@ function renderCandidatesUI() {
     document.getElementById('next-version-btn').disabled = (currentCandidateIndex === regenerationCandidates.length - 1);
 }
 
-// --- “重新生成”功能 (V3版 - 支持API故障转移) ---
+// --- “重新生成”功能 (V4版 - 支持SFW切换) ---
 async function handleRegenerate() {
     const regenerateBtn = document.getElementById('regenerate-btn');
     regenerateBtn.disabled = true;
     regenerateBtn.textContent = '生成中...';
     loadingIndicator.style.display = 'block';
 
-    // 准备两套API配置
     const apiConfigs = [
         { name: '主API', url: normalizeApiUrl(localStorage.getItem('apiUrl')), key: localStorage.getItem('apiKey'), model: localStorage.getItem('selectedModel') },
         { name: '副API', url: normalizeApiUrl(localStorage.getItem('secondaryApiUrl')), key: localStorage.getItem('secondaryApiKey'), model: localStorage.getItem('secondarySelectedModel') }
     ];
 
+    // 【核心改造】根据内容选项决定提示词组合
+    const contentRating = document.querySelector('input[name="content_rating"]:checked')?.value;
     const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
     const maincharName = document.getElementById('mainchar-name').value.trim();
     const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
     const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
 
-    const finalPrompt = [
-        getEnabledPromptsContent('jailbreakPrompts'), getEnabledPromptsContent('forbiddenPrompts'), processedWeldedPrompt,
-        getEnabledPromptsContent('stylePrompts'), getEnabledPromptsContent('otherPrompts'),
+    const finalPromptParts = [];
+
+    if (contentRating !== 'SFW') {
+        finalPromptParts.push(getEnabledPromptsContent('jailbreakPrompts'));
+    }
+
+    finalPromptParts.push(
+        getEnabledPromptsContent('forbiddenPrompts'),
+        processedWeldedPrompt,
+        getEnabledPromptsContent('stylePrompts'),
+        getEnabledPromptsContent('otherPrompts'),
         `----------\n【历史上下文，这是你需要续写的故事】:\n${lastGenerationContext}`,
         `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
-        `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`,
-        `\n----------\n【续写开始】:\n`
-    ].filter(Boolean).join('\n\n');
+        `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`
+    );
+
+    if (contentRating === 'SFW') {
+        finalPromptParts.push('【重要内容限制】：本次续写必须严格遵守SFW（Safe for Work）准则，禁止包含任何极端色情、暴力或不适宜的成人内容。');
+    }
+
+    finalPromptParts.push(`\n----------\n【续写开始】:\n`);
+
+    const finalPrompt = finalPromptParts.filter(Boolean).join('\n\n');
 
     let success = false;
     let newContent = '';
 
-    // 【核心改造】循环尝试API
     for (let i = 0; i < apiConfigs.length; i++) {
         const config = apiConfigs[i];
         if (!config.url || !config.key || !config.model) {
             if (i === 0) showToast('主API配置不完整，尝试副API...');
             continue;
         }
-
         try {
             const response = await fetch(`${config.url}/chat/completions`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
@@ -2398,9 +2425,7 @@ async function handleRegenerate() {
             break; 
         } catch (error) {
             console.error(`${config.name} 失败:`, error);
-            if (i === 0) { 
-                showToast('主API连接失败，正在尝试使用副API...', 4000);
-            }
+            if (i === 0) { showToast('主API连接失败，正在尝试使用副API...', 4000); }
         }
     }
 
@@ -2417,19 +2442,6 @@ async function handleRegenerate() {
     }
 }
 
-function commitCurrentCandidate() {
-    // 【修复点】这是唯一一个能将“候选内容”存入“历史”的地方
-    if (currentCandidateIndex !== -1 && regenerationCandidates.length > 0) {
-        const chosenContent = regenerationCandidates[currentCandidateIndex];
-        currentSession.chapters.push({type: 'continuation', content: chosenContent});
-
-        // 提交后，清空所有临时状态，为下一次生成做准备
-        regenerationCandidates = [];
-        currentCandidateIndex = -1;
-        lastGenerationContext = null;
-        saveCurrentSession();
-    }
-}
 // ==================== 新代码块 2 结束 ====================
 
 
@@ -3160,6 +3172,7 @@ document.getElementById('show-changelog-btn').addEventListener('click', (e) => {
 * 新增: API自动故障转移，现在主API失败后会自动尝试使用副API了
 - 优化：采用AI识图，准确率+++
 - 优化：现在的API地址加不加/v1都行了，总裁您随便选喵
+- 优化：内容选项新增自动挡
 + 修复：各种乱七八糟的bug
 </textarea>
 <div id="changelog-modal" class="modal-overlay">
