@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小说续写工作台 v2.0</title>
+    <title>小说续写工作台 v2.1</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js`;</script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -209,7 +209,34 @@
     display: flex;
 }
 /* ==================== 新增的CSS代码 结束 ==================== */
-
+/* --- 结果编辑区样式 --- */
+#result-editor {
+    width: 100%;
+    min-height: 250px; /* 确保编辑框有足够高度 */
+    padding: 12px;
+    border: 1px solid var(--primary-color);
+    border-radius: 12px;
+    background-color: #fafdff;
+    color: var(--text-color);
+    font-family: var(--font-family);
+    font-size: 1rem;
+    line-height: 1.7;
+    resize: vertical;
+}
+#result-editor:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(162, 210, 255, 0.5);
+}
+#save-edit-btn {
+    color: #22c55e; /* 绿色 */
+    font-weight: bold;
+    font-size: 1.5em;
+}
+#cancel-edit-btn {
+    color: #ef4444; /* 红色 */
+    font-weight: bold;
+    font-size: 1.5em;
+}
     </style>
 </head>
 <body>
@@ -219,7 +246,7 @@
     <div class="container">
         <div id="page1" class="page">
             <h1 style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-    小说续写工作台 <a href="#" id="show-changelog-btn" style="font-size: 0.5em; color: var(--primary-color); text-decoration: none;">v2.0</a>
+    小说续写工作台 <a href="#" id="show-changelog-btn" style="font-size: 0.5em; color: var(--primary-color); text-decoration: none;">v2.1</a>
 </h1>
             <p>不满意结局？我们自己创造！把原文贴进来，或上传 txt, docx, epub, pdf, png, jpg 文件，开启新的篇章吧~</p>
             <div class="input-group">
@@ -259,6 +286,10 @@
             </div>
             <div class="quick-options-panel">
                 <div id="char-options-root"></div>
+                <div class="input-group" style="margin-top: 15px;">
+    <label for="char-notes-input"><small>其他角色/世界观补充 (永久保存)</small></label>
+    <textarea id="char-notes-input" rows="1" placeholder="例如：配角A是主角的发小；这个世界魔法不常见..."></textarea>
+</div>
                 <div class="quick-option-row">
                     <label class="label">主角</label>
                     <div class="choices" id="protagonist-attitude">
@@ -267,6 +298,10 @@
                          <input type="radio" name="protagonist_attitude" value="更被动" id="prot-att-passive"><label for="prot-att-passive">更被动</label>
                     </div>
                 </div>
+                <div class="input-group" style="margin-top: 15px;">
+    <label for="protagonist-notes-input"><small>主角补充设定 (永久保存)</small></label>
+    <textarea id="protagonist-notes-input" rows="1" placeholder="例如：主角不爱说话，有轻微洁癖..."></textarea>
+</div>
                 <div class="quick-option-row">
                     <label class="label">节奏</label>
                     <div class="choices" id="pace-control">
@@ -316,6 +351,13 @@
             </div>
             <div id="loading-indicator"><p>AI正在奋笔疾书...</p><div class="spinner"></div></div>
             <div id="result-area"><p id="result-placeholder">This is 用餐区域^^</p></div>
+            <div id="result-header" style="display: none; justify-content: flex-end; align-items: center; margin-bottom: 8px;">
+    <button id="edit-result-btn" class="icon-btn" title="编辑">✏️</button>
+    <div id="edit-actions" style="display: none; gap: 8px;">
+        <button id="cancel-edit-btn" class="icon-btn" title="取消">✗</button>
+        <button id="save-edit-btn" class="icon-btn" title="保存">✓</button>
+    </div>
+</div>
             <div id="result-actions" style="display: none; flex-direction: column; gap: 15px;">
     <div id="version-navigator" style="display: none; justify-content: center; align-items: center; gap: 15px;">
         <button class="btn btn-secondary btn-small" id="prev-version-btn" style="width: 50px;">&lt;</button>
@@ -1142,6 +1184,10 @@ identity_and_output_safeguards:
                 
                 // 保存更新后的会话
                 saveCurrentSession();
+                // 清理已保存的临时结果
+localStorage.removeItem('regenerationCandidates');
+localStorage.removeItem('currentCandidateIndex');
+
             }
         }
 
@@ -1177,6 +1223,9 @@ identity_and_output_safeguards:
                         mainCharName: document.getElementById('mainchar-name').value,
                         mainCharNickname: document.getElementById('mainchar-nickname').value,
                         detailedReqs: document.getElementById('detailed-requirements').value
+                        ,
+protagonistNotes: document.getElementById('protagonist-notes-input').value,
+charNotes: document.getElementById('char-notes-input').value
                     }
                 };
                 if (page1.classList.contains('active')) {
@@ -1205,9 +1254,23 @@ identity_and_output_safeguards:
                 document.getElementById('mainchar-name').value = inputs.mainCharName || '';
                 document.getElementById('mainchar-nickname').value = inputs.mainCharNickname || '';
                 document.getElementById('detailed-requirements').value = inputs.detailedReqs || '';
+                document.getElementById('protagonist-notes-input').value = inputs.protagonistNotes || '';
+document.getElementById('char-notes-input').value = inputs.charNotes || '';
                 if (currentSession.chapters.length > 1) { renderResultArea(currentSession.chapters.slice(-1)[0].content); }
                 const pageToShow = document.getElementById(savedSession.page) || page1;
                 showPage(pageToShow);
+                // 恢复未保存的生成结果
+const savedCandidates = localStorage.getItem('regenerationCandidates');
+if (savedCandidates) {
+    regenerationCandidates = JSON.parse(savedCandidates);
+    currentCandidateIndex = parseInt(localStorage.getItem('currentCandidateIndex') || '0', 10);
+    if (regenerationCandidates.length > 0) {
+        renderCandidatesUI();
+        // 既然有未保存的结果，就禁用“生成”按钮，并隐藏“返回原文”按钮
+        document.getElementById('generate-btn').disabled = true;
+        document.getElementById('back-to-page1-btn').style.display = 'none';
+    }
+}
             } catch(e) {
                 console.error("Failed to restore session:", e);
                 clearCurrentSession();
@@ -1218,6 +1281,8 @@ identity_and_output_safeguards:
             currentSession = { chapters: [], page2Inputs: {} };
             localStorage.removeItem('currentSession');
             localStorage.removeItem('ocrResultCache'); // <-- 新增的清除缓存代码
+            document.getElementById('protagonist-notes-input').value = '';
+document.getElementById('char-notes-input').value = '';
             originalTextArea.value = '';
             document.getElementById('ocr-result-textarea').value = ''; // <-- 新增的清空界面代码
             document.getElementById('ocr-results-container').style.display = 'none'; // <-- 新增的隐藏容器代码
@@ -1226,6 +1291,8 @@ identity_and_output_safeguards:
             document.querySelector('input[name="word-count"][value="auto"]').checked = true;
             restoreQuickOptionsState({});
             resetResultArea();
+            document.getElementById('generate-btn').disabled = false;
+document.getElementById('back-to-page1-btn').style.display = 'inline-block';
             showPage(page1);
         }
 
@@ -2313,6 +2380,14 @@ generateBtn.addEventListener('click', async () => {
     if (contentRating !== 'SFW') {
         finalPromptParts.push(getEnabledPromptsContent('jailbreakPrompts'));
     }
+    const protagonistNotes = document.getElementById('protagonist-notes-input').value.trim();
+if (protagonistNotes) {
+    finalPromptParts.push(`【主角永久设定】:\n${protagonistNotes}`);
+}
+const charNotes = document.getElementById('char-notes-input').value.trim();
+if (charNotes) {
+    finalPromptParts.push(`【其他角色/世界观永久设定】:\n${charNotes}`);
+}
 
     finalPromptParts.push(
         getEnabledPromptsContent('forbiddenPrompts'),
@@ -2351,8 +2426,9 @@ generateBtn.addEventListener('click', async () => {
             const data = await response.json();
 
             // 【核心改造】先接收原始内容，再用正则清洗
-            const rawContent = data.choices[0]?.message?.content || "返回内容为空。";
-            newContent = rawContent.replace(/[\s\S]*?<\/thought>/g, '').trim();
+const rawContent = data.choices[0]?.message?.content || "返回内容为空。";
+// 下方是新的正则表达式，可以删除所有位置的thought标签块
+newContent = rawContent.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
             
             success = true;
             break; 
@@ -2367,14 +2443,20 @@ generateBtn.addEventListener('click', async () => {
     loadingIndicator.style.display = 'none';
     generateBtn.disabled = false;
 
-    if (success) {
-        regenerationCandidates = [newContent];
-        currentCandidateIndex = 0;
-        renderCandidatesUI();
-    } else {
-        showAlert('主副API均连接失败！请检查设置或网络。');
-        resetResultArea();
-    }
+        if (success) {
+            regenerationCandidates = [newContent];
+            currentCandidateIndex = 0;
+            renderCandidatesUI();
+            
+            // --- ↓↓↓ 需要在这里添加的代码 PART 1 ↓↓↓ ---
+            localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
+            localStorage.setItem('currentCandidateIndex', currentCandidateIndex);
+            // --- ↑↑↑ 新增代码结束 ↑↑↑ ---
+
+        } else {
+            showAlert('主副API均连接失败！请检查设置或网络。');
+            resetResultArea();
+        }
 });
 
         // ==================== 新代码块 2 开始 ====================
@@ -2401,6 +2483,11 @@ function renderCandidatesUI() {
 
     document.getElementById('prev-version-btn').disabled = (currentCandidateIndex === 0);
     document.getElementById('next-version-btn').disabled = (currentCandidateIndex === regenerationCandidates.length - 1);
+    // 新增：显示编辑按钮，并在必要时退出编辑模式
+document.getElementById('result-header').style.display = (regenerationCandidates.length > 0) ? 'flex' : 'none';
+if(isEditingResult) {
+    toggleResultEditMode(false); 
+}
 }
 
 // --- “重新生成”功能 (V4版 - 支持SFW切换) ---
@@ -2462,7 +2549,9 @@ async function handleRegenerate() {
             });
             if (!response.ok) { throw new Error(`API返回错误状态: ${response.status}`); }
             const data = await response.json();
-            newContent = data.choices[0]?.message?.content || "返回内容为空。";
+const rawContent = data.choices[0]?.message?.content || "返回内容为空。";
+// 下方是新的正则表达式，可以删除所有位置的thought标签块
+newContent = rawContent.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
             success = true;
             break; 
         } catch (error) {
@@ -2479,6 +2568,8 @@ async function handleRegenerate() {
         regenerationCandidates.push(newContent);
         currentCandidateIndex = regenerationCandidates.length - 1;
         renderCandidatesUI();
+        localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
+localStorage.setItem('currentCandidateIndex', currentCandidateIndex);
     } else {
         showAlert('主副API均连接失败！');
     }
@@ -3204,10 +3295,89 @@ document.getElementById('show-changelog-btn').addEventListener('click', (e) => {
     contentDiv.innerHTML = html;
     document.getElementById('changelog-modal').classList.add('active');
 });
+// --- 全新的“编辑生成结果”功能 ---
+let isEditingResult = false;
+let resultEditorTextarea = null;
+
+function toggleResultEditMode(edit) {
+    const resultArea = document.getElementById('result-area');
+    const resultHeader = document.getElementById('result-header');
+    const editBtn = document.getElementById('edit-result-btn');
+    const editActions = document.getElementById('edit-actions');
+
+    isEditingResult = edit;
+
+    if (edit) {
+        // 进入编辑模式
+        resultArea.style.display = 'none';
+        editBtn.style.display = 'none';
+        editActions.style.display = 'flex';
+
+        if (!resultEditorTextarea) {
+            resultEditorTextarea = document.createElement('textarea');
+            resultEditorTextarea.id = 'result-editor';
+        }
+        resultEditorTextarea.value = regenerationCandidates[currentCandidateIndex];
+        resultArea.parentNode.insertBefore(resultEditorTextarea, resultArea.nextSibling);
+        resultEditorTextarea.focus();
+        resultEditorTextarea.style.height = (resultArea.scrollHeight + 24) + 'px';
+
+
+    } else {
+        // 退出编辑模式
+        resultArea.style.display = 'block';
+        editBtn.style.display = 'inline-block';
+        editActions.style.display = 'none';
+
+        if (resultEditorTextarea) {
+            resultEditorTextarea.remove();
+        }
+    }
+}
+
+document.getElementById('edit-result-btn').addEventListener('click', () => {
+    if (currentCandidateIndex > -1) {
+        toggleResultEditMode(true);
+    }
+});
+
+document.getElementById('cancel-edit-btn').addEventListener('click', () => {
+    toggleResultEditMode(false);
+});
+
+document.getElementById('save-edit-btn').addEventListener('click', () => {
+    if (resultEditorTextarea && currentCandidateIndex > -1) {
+        const newText = resultEditorTextarea.value;
+        regenerationCandidates[currentCandidateIndex] = newText;
+        document.getElementById('result-area').innerText = newText;
+
+        // 更新本地存储
+        localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
+
+        toggleResultEditMode(false);
+        showToast('保存成功！', 2000);
+    }
+});
+// --- 新增：为人设补充框添加高度自动增长功能 ---
+function autoGrowTextarea(element) {
+    element.style.height = "auto";
+    element.style.height = (element.scrollHeight) + "px";
+}
+
+document.querySelectorAll('#protagonist-notes-input, #char-notes-input').forEach(textarea => {
+    textarea.addEventListener('input', function() {
+        autoGrowTextarea(this);
+    });
+    // 初始化时也调用一次，以防刷新页面时有缓存内容
+    autoGrowTextarea(textarea);
+});
     });
     </script>
     <div id="toast-notification"></div>
     <textarea id="changelog-source" style="display:none;">
+## v2.1 - 2025-09-28
+* 新增：在点餐环节设置了人设/世界观等长久设定放置处（太长的还是建议放提示词里头）
+* 新增：现在生成的消息可以进行编辑了
 ## v2.0 - 2025-09-26
 * 新增：思维链及其对应正则，现在AI动笔前必须先稍微思考一下了
 * 新增：小红书链接图片转文字功能，再也不用一张张存图再一张张上传了
