@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小说续写工作台 v2.1</title>
+    <title>小说续写工作台 v2.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js`;</script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -11,6 +11,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.93/epub.min.js"></script>
     <style>
+    .modal-title-group {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* 在标题和导入按钮之间增加一些间距 */
+}
     #upload-area label {
     word-wrap: break-word; /* 允许长单词在任意位置换行 */
 }
@@ -209,6 +214,57 @@
     display: flex;
 }
 /* ==================== 新增的CSS代码 结束 ==================== */
+/* ==================== 新增：思维链下拉框样式 开始 ==================== */
+#thought-chain-container {
+    margin-top: 30px;
+}
+#thought-chain-container details {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: #f8fafc;
+    transition: all 0.2s ease-in-out;
+    margin-bottom: 15px; /* 与下方结果区保持间距 */
+}
+#thought-chain-container details[open] {
+    background-color: #f0f7ff;
+}
+#thought-chain-container summary {
+    padding: 12px 15px;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none; /* 移除默认箭头 */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--light-text-color);
+}
+#thought-chain-container summary::-webkit-details-marker {
+    display: none; /* 再次确保在Safari中移除箭头 */
+}
+#thought-chain-container summary:hover {
+    background-color: #eef2ff;
+    border-radius: 11px; /* 适配父元素的圆角 */
+}
+#thought-chain-container summary::after {
+    content: '▶';
+    font-size: 0.8rem;
+    transition: transform 0.2s ease-in-out;
+    margin-left: 10px;
+}
+#thought-chain-container details[open] > summary::after {
+    transform: rotate(90deg);
+}
+#thought-chain-content {
+    padding: 0 15px 15px 15px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.7;
+    border-top: 1px solid var(--border-color);
+    margin: 0 15px;
+    padding-top: 15px;
+    color: #475569; /* 深一点的灰色 */
+}
+/* ==================== 新增：思维链下拉框样式 结束 ==================== */
 /* --- 结果编辑区样式 --- */
 #result-editor {
     width: 100%;
@@ -246,7 +302,7 @@
     <div class="container">
         <div id="page1" class="page">
             <h1 style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-    小说续写工作台 <a href="#" id="show-changelog-btn" style="font-size: 0.5em; color: var(--primary-color); text-decoration: none;">v2.1</a>
+    小说续写工作台 <a href="#" id="show-changelog-btn" style="font-size: 0.5em; color: var(--primary-color); text-decoration: none;">v2.2</a>
 </h1>
             <p>不满意结局？我们自己创造！把原文贴进来，或上传 txt, docx, epub, pdf, png, jpg 文件，开启新的篇章吧~</p>
             <div class="input-group">
@@ -350,6 +406,12 @@
                 <button class="btn" id="generate-btn">生成 ✨</button>
             </div>
             <div id="loading-indicator"><p>AI正在奋笔疾书...</p><div class="spinner"></div></div>
+            <div id="thought-chain-container">
+                <details>
+                    <summary>你到底咋想的.jpg</summary>
+                    <div id="thought-chain-content"></div>
+                </details>
+            </div>
             <div id="result-area"><p id="result-placeholder">This is 用餐区域^^</p></div>
             <div id="result-header" style="display: none; justify-content: flex-end; align-items: center; margin-bottom: 8px;">
     <button id="edit-result-btn" class="icon-btn" title="编辑">✏️</button>
@@ -481,7 +543,14 @@
     </div>
     <div id="history-modal" class="modal-overlay">
         <div class="modal-content">
-            <div class="modal-header"><h2>创作历史</h2><button class="close-btn">&times;</button></div>
+        <div class="modal-header">
+            <div class="modal-title-group">
+                <h2>创作历史</h2>
+                <button id="import-history-btn" class="icon-btn" title="导入历史">📥</button>
+            </div>
+            <button class="close-btn">&times;</button>
+        </div>
+        <input type="file" id="history-file-input" accept=".txt" style="display: none;">
             <div id="history-list-container"></div>
             <div id="history-detail-view">
                 <div class="modal-header" style="justify-content: flex-start; padding-bottom: 10px; border-bottom: none;">
@@ -495,13 +564,11 @@
                     <button class="btn btn-secondary" id="history-load-btn">载入继续</button>
                     <button class="btn" id="history-export-btn">导出全文</button>
                 </div>                
-                <div id="history-detail-content" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;"></div>
-            </div>
-
-                <div id="history-detail-content" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;"></div>
-            </div>
+                            <div id="history-detail-content" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;"></div>
         </div>
     </div>
+</div>
+
     <div id="custom-alert-modal" class="modal-overlay">
         <div class="modal-content" style="max-width:350px;padding:30px;text-align:center;">
             <p id="custom-alert-message"></p><button class="btn" id="custom-alert-close">好的</button>
@@ -1173,9 +1240,10 @@ identity_and_output_safeguards:
             document.getElementById('custom-alert-message').textContent = message;
             customAlertModal.classList.add('active');
         };
-        function commitCurrentCandidate() {
+                function commitCurrentCandidate() {
             if (currentCandidateIndex > -1 && regenerationCandidates[currentCandidateIndex]) {
-                const newContent = regenerationCandidates[currentCandidateIndex];
+                // 修正：从对象中正确获取续写内容
+                const newContent = regenerationCandidates[currentCandidateIndex].content;
                 currentSession.chapters.push({ type: 'generated', content: newContent });
                 
                 // 为下一轮重置
@@ -1185,9 +1253,8 @@ identity_and_output_safeguards:
                 // 保存更新后的会话
                 saveCurrentSession();
                 // 清理已保存的临时结果
-localStorage.removeItem('regenerationCandidates');
-localStorage.removeItem('currentCandidateIndex');
-
+                localStorage.removeItem('regenerationCandidates');
+                localStorage.removeItem('currentCandidateIndex');
             }
         }
 
@@ -1308,12 +1375,15 @@ document.getElementById('back-to-page1-btn').style.display = 'inline-block';
             resultActions.style.display = 'flex';
         }
 
-        function resetResultArea() {
+                function resetResultArea() {
             resultPlaceholder.style.display = 'block';
             resultArea.innerHTML = '';
             if (resultPlaceholder.parentNode !== resultArea) { resultArea.appendChild(resultPlaceholder); }
             resultActions.style.display = 'none';
+            // ▼▼▼ 在这里添加下面这行新代码 ▼▼▼
+            document.getElementById('result-header').style.display = 'none';
         }
+
         
         function getQuickOptionsState() {
             const state = { specificChars: [], isSpecific: charOptionsRoot.dataset.mode === 'specific' };
@@ -1555,25 +1625,42 @@ document.getElementById('back-to-page1-btn').style.display = 'inline-block';
             
             story.chapters.forEach((chapter, index) => {
                 const details = document.createElement('details');
-                const summary = document.createElement('summary');
+                                const summary = document.createElement('summary');
                 const contentDiv = document.createElement('div');
-                const labelText = (index === 0) ? '📖 原文' : `✍️ 第 ${index} 次续写`;
                 
+                // 1. 创建左侧的标题文字
+                const labelText = (index === 0) ? '📖 原文' : `✍️ 第 ${index} 次续写`;
+                const summaryContent = document.createElement('div');
+                summaryContent.className = 'summary-content';
+                summaryContent.textContent = labelText;
+
+                // 2. 创建右侧的复制按钮
                 const copyBtn = document.createElement('button');
                 copyBtn.className = 'icon-btn';
                 copyBtn.title = '复制此段';
                 copyBtn.innerHTML = '📋';
-                copyBtn.onclick = (e) => {
-                    e.preventDefault();
-                    navigator.clipboard.writeText(chapter.content).then(() => showAlert('复制成功！'));
-                };
-
-                const summaryContent = document.createElement('div');
-                summaryContent.className = 'summary-content';
-                summaryContent.textContent = labelText;
+                copyBtn.style.marginLeft = 'auto'; // 让按钮自动推到最右边
                 
+                // ==================== 修改部分 开始 ====================
+                copyBtn.addEventListener('click', (e) => {
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    navigator.clipboard.writeText(chapter.content)
+                        .then(() => {
+                            showToast('复制成功！', 2000);
+                        })
+                        .catch(err => {
+                            console.error('复制失败: ', err);
+                            showAlert('复制失败了！\n\n这通常是因为你直接打开了本地HTML文件，浏览器限制了剪贴板权限。可以试试用VS Code的 "Live Server" 插件来运行它。');
+                        });
+                });
+                // ==================== 修改部分 结束 ====================
+
+                
+                // 3. 将标题和按钮都添加到summary中
                 summary.appendChild(summaryContent);
                 summary.appendChild(copyBtn);
+
 
                 contentDiv.className = 'history-chapter-content';
                 contentDiv.innerText = chapter.content;
@@ -1603,6 +1690,7 @@ document.getElementById('back-to-page1-btn').style.display = 'inline-block';
             historyListContainer.style.display = 'none';
             historyDetailView.style.display = 'block';
         }
+
 
 
         function exportStory(story) {
@@ -2349,231 +2437,230 @@ saveSettingsBtn.addEventListener('click', () => {
         // --- 新增代码结束 ---
 
 
-// --- “生成”按钮功能 (V4版 - 支持SFW切换) ---
-generateBtn.addEventListener('click', async () => {
-    const apiConfigs = [
-        { name: '主API', url: normalizeApiUrl(localStorage.getItem('apiUrl')), key: localStorage.getItem('apiKey'), model: localStorage.getItem('selectedModel') },
-        { name: '副API', url: normalizeApiUrl(localStorage.getItem('secondaryApiUrl')), key: localStorage.getItem('secondaryApiKey'), model: localStorage.getItem('secondarySelectedModel') }
-    ];
+        generateBtn.addEventListener('click', async () => {
+            const apiConfigs = [
+                { name: '主API', url: normalizeApiUrl(localStorage.getItem('apiUrl')), key: localStorage.getItem('apiKey'), model: localStorage.getItem('selectedModel') },
+                { name: '副API', url: normalizeApiUrl(localStorage.getItem('secondaryApiUrl')), key: localStorage.getItem('secondaryApiKey'), model: localStorage.getItem('secondarySelectedModel') }
+            ];
 
-    if (!apiConfigs[0].url || !apiConfigs[0].key || !apiConfigs[0].model) {
-        showAlert('请先设置主API、密钥和模型！'); settingsModal.classList.add('active'); return;
-    }
+            if (!apiConfigs[0].url || !apiConfigs[0].key || !apiConfigs[0].model) {
+                showAlert('请先设置主API、密钥和模型！'); settingsModal.classList.add('active'); return;
+            }
 
-    resultActions.style.display = 'none';
-    loadingIndicator.style.display = 'block';
-    generateBtn.disabled = true;
-    resultPlaceholder.style.display = 'none';
-    resultArea.innerHTML = '';
-    lastGenerationContext = currentSession.chapters.map(c => c.content).join('\n\n');
-    
-    // 【核心改造】根据内容选项决定提示词组合
-    const contentRating = document.querySelector('input[name="content_rating"]:checked')?.value;
-    const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
-    const maincharName = document.getElementById('mainchar-name').value.trim();
-    const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
-    const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
-
-    const finalPromptParts = [];
-
-    // 如果不是SFW，就加入破甲词
-    if (contentRating !== 'SFW') {
-        finalPromptParts.push(getEnabledPromptsContent('jailbreakPrompts'));
-    }
-    const protagonistNotes = document.getElementById('protagonist-notes-input').value.trim();
-if (protagonistNotes) {
-    finalPromptParts.push(`【主角永久设定】:\n${protagonistNotes}`);
-}
-const charNotes = document.getElementById('char-notes-input').value.trim();
-if (charNotes) {
-    finalPromptParts.push(`【其他角色/世界观永久设定】:\n${charNotes}`);
-}
-
-    finalPromptParts.push(
-        getEnabledPromptsContent('forbiddenPrompts'),
-        processedWeldedPrompt,
-        getEnabledPromptsContent('stylePrompts'),
-        getEnabledPromptsContent('otherPrompts'),
-        `----------\n【历史上下文，这是你需要续写的故事】:\n${lastGenerationContext}`,
-        `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
-        `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`
-    );
-
-    // 如果是SFW，额外加一条严格指令
-    if (contentRating === 'SFW') {
-        finalPromptParts.push('【重要内容限制】：本次续写必须严格遵守SFW（Safe for Work）准则，禁止包含任何色情、暴力或不适宜的成人内容。');
-    }
-
-    finalPromptParts.push(`\n----------\n【续写开始】:\n(你的回答将从这里开始，直接续写故事，不要包含任何【】方括号或重复上面的任何内容)`);
-    
-    const finalPrompt = finalPromptParts.filter(Boolean).join('\n\n');
-    
-    let success = false;
-    let newContent = '';
-
-    for (let i = 0; i < apiConfigs.length; i++) {
-        const config = apiConfigs[i];
-        if (!config.url || !config.key || !config.model) {
-            if (i === 0) showToast('主API配置不完整，尝试副API...');
-            continue; 
-        }
-        try {
-            const response = await fetch(`${config.url}/chat/completions`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
-                body: JSON.stringify({ model: config.model, messages: [{ role: "user", content: finalPrompt }] })
-            });
-            if (!response.ok) { throw new Error(`API返回错误状态: ${response.status}`); }
-            const data = await response.json();
-
-            // 【核心改造】先接收原始内容，再用正则清洗
-const rawContent = data.choices[0]?.message?.content || "返回内容为空。";
-// 下方是新的正则表达式，可以删除所有位置的thought标签块
-newContent = rawContent.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
+            resultActions.style.display = 'none';
+            loadingIndicator.style.display = 'block';
+            generateBtn.disabled = true;
+            resultPlaceholder.style.display = 'none';
+            resultArea.innerHTML = '';
+            document.getElementById('thought-chain-content').innerHTML = '';
             
-            success = true;
-            break; 
-        } catch (error) {
-            console.error(`${config.name} 失败:`, error);
-            if (i === 0) { 
-                showToast('主API连接失败，正在尝试使用副API...', 4000); }
+            lastGenerationContext = currentSession.chapters.map(c => c.content).join('\n\n');
+            
+            const contentRating = document.querySelector('input[name="content_rating"]:checked')?.value;
+            const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
+            const maincharName = document.getElementById('mainchar-name').value.trim();
+            const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
+            const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
+            const finalPromptParts = [];
+            if (contentRating !== 'SFW') {
+                finalPromptParts.push(getEnabledPromptsContent('jailbreakPrompts'));
+            }
+            const protagonistNotes = document.getElementById('protagonist-notes-input').value.trim();
+            if (protagonistNotes) { finalPromptParts.push(`【主角永久设定】:\n${protagonistNotes}`); }
+            const charNotes = document.getElementById('char-notes-input').value.trim();
+            if (charNotes) { finalPromptParts.push(`【其他角色/世界观永久设定】:\n${charNotes}`); }
+            finalPromptParts.push(
+                getEnabledPromptsContent('forbiddenPrompts'),
+                processedWeldedPrompt,
+                getEnabledPromptsContent('stylePrompts'),
+                getEnabledPromptsContent('otherPrompts'),
+                `----------\n【历史上下文，这是你需要续写的故事】:\n${lastGenerationContext}`,
+                `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
+                `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`
+            );
+            if (contentRating === 'SFW') {
+                finalPromptParts.push('【重要内容限制】：本次续写必须严格遵守SFW（Safe for Work）准则，禁止包含任何色情、暴力或不适宜的成人内容。');
+            }
+            finalPromptParts.push(`\n----------\n【续写开始】:\n(你的回答将从这里开始，直接续写故事，不要包含任何【】方括号或重复上面的任何内容)`);
+            const finalPrompt = finalPromptParts.filter(Boolean).join('\n\n');
+            
+            let success = false;
+            let rawContent = ''; 
+
+            for (let i = 0; i < apiConfigs.length; i++) {
+                const config = apiConfigs[i];
+                if (!config.url || !config.key || !config.model) {
+                    if (i === 0) showToast('主API配置不完整，尝试副API...');
+                    continue; 
+                }
+                try {
+                    const response = await fetch(`${config.url}/chat/completions`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
+                        body: JSON.stringify({ model: config.model, messages: [{ role: "user", content: finalPrompt }] })
+                    });
+                    if (!response.ok) { throw new Error(`API返回错误状态: ${response.status}`); }
+                    const data = await response.json();
+                    rawContent = data.choices[0]?.message?.content || "返回内容为空。";
+                    success = true;
+                    break; 
+                } catch (error) {
+                    console.error(`${config.name} 失败:`, error);
+                    if (i === 0) { showToast('主API连接失败，正在尝试使用副API...', 4000); }
+                }
+            }
+
+            loadingIndicator.style.display = 'none';
+            generateBtn.disabled = false;
+
+            if (success) {
+                const thoughtRegex = /<thought>([\s\S]*?)<\/thought>/;
+                const thoughtMatch = rawContent.match(thoughtRegex);
+                let thoughtContent = 'AI本次生成未提供思考过程。'; 
+
+                if (thoughtMatch && thoughtMatch[1]) {
+                    thoughtContent = thoughtMatch[1].trim();
+                }
+                
+                const newContent = rawContent.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
+
+                // 升级：将内容和思维链作为一个对象存储
+                regenerationCandidates = [{ content: newContent, thought: thoughtContent }];
+                currentCandidateIndex = 0;
+
+                renderCandidatesUI();
+                localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
+                localStorage.setItem('currentCandidateIndex', currentCandidateIndex);
+            } else {
+                showAlert('主副API均连接失败！请检查设置或网络。');
+                resetResultArea();
+            }
+        });
+
+
+        // ==================== 新代码块 2 开始 ====================
+        function renderCandidatesUI() {
+            if (currentCandidateIndex === -1 || regenerationCandidates.length === 0) {
+                resetResultArea();
+                document.getElementById('version-navigator').style.display = 'none';
+                return;
+            }
+
+            // 升级：获取包含内容和思维链的完整对象
+            const currentCandidate = regenerationCandidates[currentCandidateIndex];
+
+            // 升级：同时更新正文和思维链
+            resultPlaceholder.style.display = 'none';
+            resultArea.innerText = currentCandidate.content;
+            document.getElementById('thought-chain-content').innerText = currentCandidate.thought;
+            resultActions.style.display = 'flex';
+
+            const versionNavigator = document.getElementById('version-navigator');
+            const versionDisplay = document.getElementById('version-display');
+
+            if (regenerationCandidates.length > 1) {
+                versionNavigator.style.display = 'flex';
+                versionDisplay.textContent = `版本 ${currentCandidateIndex + 1}/${regenerationCandidates.length}`;
+            } else {
+                versionNavigator.style.display = 'none';
+            }
+
+            document.getElementById('prev-version-btn').disabled = (currentCandidateIndex === 0);
+            document.getElementById('next-version-btn').disabled = (currentCandidateIndex === regenerationCandidates.length - 1);
+            document.getElementById('result-header').style.display = (regenerationCandidates.length > 0) ? 'flex' : 'none';
+            if(isEditingResult) {
+                toggleResultEditMode(false); 
             }
         }
 
+        async function handleRegenerate() {
+            const regenerateBtn = document.getElementById('regenerate-btn');
+            regenerateBtn.disabled = true;
+            regenerateBtn.textContent = '生成中...';
+            loadingIndicator.style.display = 'block';
+            document.getElementById('thought-chain-content').innerHTML = '';
 
-    loadingIndicator.style.display = 'none';
-    generateBtn.disabled = false;
+            const apiConfigs = [
+                { name: '主API', url: normalizeApiUrl(localStorage.getItem('apiUrl')), key: localStorage.getItem('apiKey'), model: localStorage.getItem('selectedModel') },
+                { name: '副API', url: normalizeApiUrl(localStorage.getItem('secondaryApiUrl')), key: localStorage.getItem('secondaryApiKey'), model: localStorage.getItem('secondarySelectedModel') }
+            ];
 
-        if (success) {
-            regenerationCandidates = [newContent];
-            currentCandidateIndex = 0;
-            renderCandidatesUI();
-            
-            // --- ↓↓↓ 需要在这里添加的代码 PART 1 ↓↓↓ ---
-            localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
-            localStorage.setItem('currentCandidateIndex', currentCandidateIndex);
-            // --- ↑↑↑ 新增代码结束 ↑↑↑ ---
+            const contentRating = document.querySelector('input[name="content_rating"]:checked')?.value;
+            const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
+            const maincharName = document.getElementById('mainchar-name').value.trim();
+            const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
+            const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
 
-        } else {
-            showAlert('主副API均连接失败！请检查设置或网络。');
-            resetResultArea();
+            const finalPromptParts = [];
+
+            if (contentRating !== 'SFW') {
+                finalPromptParts.push(getEnabledPromptsContent('jailbreakPrompts'));
+            }
+
+            finalPromptParts.push(
+                getEnabledPromptsContent('forbiddenPrompts'),
+                processedWeldedPrompt,
+                getEnabledPromptsContent('stylePrompts'),
+                getEnabledPromptsContent('otherPrompts'),
+                `----------\n【历史上下文，这是你需要续写的故事】:\n${lastGenerationContext}`,
+                `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
+                `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`
+            );
+
+            if (contentRating === 'SFW') {
+                finalPromptParts.push('【重要内容限制】：本次续写必须严格遵守SFW（Safe for Work）准则，禁止包含任何极端色情、暴力或不适宜的成人内容。');
+            }
+
+            finalPromptParts.push(`\n----------\n【续写开始】:\n`);
+            const finalPrompt = finalPromptParts.filter(Boolean).join('\n\n');
+            let success = false;
+            let rawContent = '';
+
+            for (let i = 0; i < apiConfigs.length; i++) {
+                const config = apiConfigs[i];
+                if (!config.url || !config.key || !config.model) {
+                    if (i === 0) showToast('主API配置不完整，尝试副API...');
+                    continue;
+                }
+                try {
+                    const response = await fetch(`${config.url}/chat/completions`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
+                        body: JSON.stringify({ model: config.model, messages: [{ role: "user", content: finalPrompt }] })
+                    });
+                    if (!response.ok) { throw new Error(`API返回错误状态: ${response.status}`); }
+                    const data = await response.json();
+                    rawContent = data.choices[0].message.content || "返回内容为空。";
+                    success = true;
+                    break; 
+                } catch (error) {
+                    console.error(`${config.name} 失败:`, error);
+                    if (i === 0) { showToast('主API连接失败，正在尝试使用副API...', 4000); }
+                }
+            }
+
+            loadingIndicator.style.display = 'none';
+            regenerateBtn.disabled = false;
+            regenerateBtn.textContent = '重新生成';
+
+            if (success) {
+                const thoughtRegex = /<thought>([\s\S]*?)<\/thought>/;
+                const thoughtMatch = rawContent.match(thoughtRegex);
+                let thoughtContent = 'AI本次生成未提供思考过程。';
+                if (thoughtMatch && thoughtMatch[1]) {
+                    thoughtContent = thoughtMatch[1].trim();
+                }
+                const newContent = rawContent.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
+
+                
+                // 升级：将新版本作为一个对象推进数组
+                regenerationCandidates.push({ content: newContent, thought: thoughtContent });
+                currentCandidateIndex = regenerationCandidates.length - 1;
+                renderCandidatesUI();
+                localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
+                localStorage.setItem('currentCandidateIndex', currentCandidateIndex);
+            } else {
+                showAlert('主副API均连接失败！');
+            }
         }
-});
-
-        // ==================== 新代码块 2 开始 ====================
-function renderCandidatesUI() {
-    if (currentCandidateIndex === -1 || regenerationCandidates.length === 0) {
-        resetResultArea();
-        document.getElementById('version-navigator').style.display = 'none';
-        return;
-    }
-
-    resultPlaceholder.style.display = 'none';
-    resultArea.innerText = regenerationCandidates[currentCandidateIndex];
-    resultActions.style.display = 'flex';
-
-    const versionNavigator = document.getElementById('version-navigator');
-    const versionDisplay = document.getElementById('version-display');
-
-    if (regenerationCandidates.length > 1) {
-        versionNavigator.style.display = 'flex';
-        versionDisplay.textContent = `版本 ${currentCandidateIndex + 1}/${regenerationCandidates.length}`;
-    } else {
-        versionNavigator.style.display = 'none';
-    }
-
-    document.getElementById('prev-version-btn').disabled = (currentCandidateIndex === 0);
-    document.getElementById('next-version-btn').disabled = (currentCandidateIndex === regenerationCandidates.length - 1);
-    // 新增：显示编辑按钮，并在必要时退出编辑模式
-document.getElementById('result-header').style.display = (regenerationCandidates.length > 0) ? 'flex' : 'none';
-if(isEditingResult) {
-    toggleResultEditMode(false); 
-}
-}
-
-// --- “重新生成”功能 (V4版 - 支持SFW切换) ---
-async function handleRegenerate() {
-    const regenerateBtn = document.getElementById('regenerate-btn');
-    regenerateBtn.disabled = true;
-    regenerateBtn.textContent = '生成中...';
-    loadingIndicator.style.display = 'block';
-
-    const apiConfigs = [
-        { name: '主API', url: normalizeApiUrl(localStorage.getItem('apiUrl')), key: localStorage.getItem('apiKey'), model: localStorage.getItem('selectedModel') },
-        { name: '副API', url: normalizeApiUrl(localStorage.getItem('secondaryApiUrl')), key: localStorage.getItem('secondaryApiKey'), model: localStorage.getItem('secondarySelectedModel') }
-    ];
-
-    // 【核心改造】根据内容选项决定提示词组合
-    const contentRating = document.querySelector('input[name="content_rating"]:checked')?.value;
-    const getEnabledPromptsContent = key => getPrompts(key).filter(p => p.enabled).map(p => p.content).join('\n\n');
-    const maincharName = document.getElementById('mainchar-name').value.trim();
-    const maincharNickname = document.getElementById('mainchar-nickname').value.trim();
-    const processedWeldedPrompt = WELDED_DEFAULT_PROMPT.replace('{{mainchar}}', maincharName || '未指定').replace('{{nickname}}', maincharNickname || '未指定');
-
-    const finalPromptParts = [];
-
-    if (contentRating !== 'SFW') {
-        finalPromptParts.push(getEnabledPromptsContent('jailbreakPrompts'));
-    }
-
-    finalPromptParts.push(
-        getEnabledPromptsContent('forbiddenPrompts'),
-        processedWeldedPrompt,
-        getEnabledPromptsContent('stylePrompts'),
-        getEnabledPromptsContent('otherPrompts'),
-        `----------\n【历史上下文，这是你需要续写的故事】:\n${lastGenerationContext}`,
-        `\n【本次任务指令】:\n请基于以上全部历史上下文，继续撰写故事。\n${getQuickOptionsAsText()}`,
-        `详细要求：${document.getElementById('detailed-requirements').value.trim() || '无'}`
-    );
-
-    if (contentRating === 'SFW') {
-        finalPromptParts.push('【重要内容限制】：本次续写必须严格遵守SFW（Safe for Work）准则，禁止包含任何极端色情、暴力或不适宜的成人内容。');
-    }
-
-    finalPromptParts.push(`\n----------\n【续写开始】:\n`);
-
-    const finalPrompt = finalPromptParts.filter(Boolean).join('\n\n');
-
-    let success = false;
-    let newContent = '';
-
-    for (let i = 0; i < apiConfigs.length; i++) {
-        const config = apiConfigs[i];
-        if (!config.url || !config.key || !config.model) {
-            if (i === 0) showToast('主API配置不完整，尝试副API...');
-            continue;
-        }
-        try {
-            const response = await fetch(`${config.url}/chat/completions`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
-                body: JSON.stringify({ model: config.model, messages: [{ role: "user", content: finalPrompt }] })
-            });
-            if (!response.ok) { throw new Error(`API返回错误状态: ${response.status}`); }
-            const data = await response.json();
-const rawContent = data.choices[0]?.message?.content || "返回内容为空。";
-// 下方是新的正则表达式，可以删除所有位置的thought标签块
-newContent = rawContent.replace(/<thought>[\s\S]*?<\/thought>/g, '').trim();
-            success = true;
-            break; 
-        } catch (error) {
-            console.error(`${config.name} 失败:`, error);
-            if (i === 0) { showToast('主API连接失败，正在尝试使用副API...', 4000); }
-        }
-    }
-
-    loadingIndicator.style.display = 'none';
-    regenerateBtn.disabled = false;
-    regenerateBtn.textContent = '重新生成';
-
-    if (success) {
-        regenerationCandidates.push(newContent);
-        currentCandidateIndex = regenerationCandidates.length - 1;
-        renderCandidatesUI();
-        localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
-localStorage.setItem('currentCandidateIndex', currentCandidateIndex);
-    } else {
-        showAlert('主副API均连接失败！');
-    }
-}
 
 // ==================== 新代码块 2 结束 ====================
 
@@ -3299,41 +3386,40 @@ document.getElementById('show-changelog-btn').addEventListener('click', (e) => {
 let isEditingResult = false;
 let resultEditorTextarea = null;
 
-function toggleResultEditMode(edit) {
-    const resultArea = document.getElementById('result-area');
-    const resultHeader = document.getElementById('result-header');
-    const editBtn = document.getElementById('edit-result-btn');
-    const editActions = document.getElementById('edit-actions');
+        function toggleResultEditMode(edit) {
+            const resultArea = document.getElementById('result-area');
+            const resultHeader = document.getElementById('result-header');
+            const editBtn = document.getElementById('edit-result-btn');
+            const editActions = document.getElementById('edit-actions');
 
-    isEditingResult = edit;
+            isEditingResult = edit;
 
-    if (edit) {
-        // 进入编辑模式
-        resultArea.style.display = 'none';
-        editBtn.style.display = 'none';
-        editActions.style.display = 'flex';
+            if (edit) {
+                // 进入编辑模式
+                resultArea.style.display = 'none';
+                editBtn.style.display = 'none';
+                editActions.style.display = 'flex';
 
-        if (!resultEditorTextarea) {
-            resultEditorTextarea = document.createElement('textarea');
-            resultEditorTextarea.id = 'result-editor';
+                if (!resultEditorTextarea) {
+                    resultEditorTextarea = document.createElement('textarea');
+                    resultEditorTextarea.id = 'result-editor';
+                }
+                // 修正：从对象中正确获取续写内容
+                resultEditorTextarea.value = regenerationCandidates[currentCandidateIndex].content;
+                resultArea.parentNode.insertBefore(resultEditorTextarea, resultArea.nextSibling);
+                resultEditorTextarea.focus();
+                resultEditorTextarea.style.height = (resultArea.scrollHeight + 24) + 'px';
+            } else {
+                // 退出编辑模式
+                resultArea.style.display = 'block';
+                editBtn.style.display = 'inline-block';
+                editActions.style.display = 'none';
+
+                if (resultEditorTextarea) {
+                    resultEditorTextarea.remove();
+                }
+            }
         }
-        resultEditorTextarea.value = regenerationCandidates[currentCandidateIndex];
-        resultArea.parentNode.insertBefore(resultEditorTextarea, resultArea.nextSibling);
-        resultEditorTextarea.focus();
-        resultEditorTextarea.style.height = (resultArea.scrollHeight + 24) + 'px';
-
-
-    } else {
-        // 退出编辑模式
-        resultArea.style.display = 'block';
-        editBtn.style.display = 'inline-block';
-        editActions.style.display = 'none';
-
-        if (resultEditorTextarea) {
-            resultEditorTextarea.remove();
-        }
-    }
-}
 
 document.getElementById('edit-result-btn').addEventListener('click', () => {
     if (currentCandidateIndex > -1) {
@@ -3345,19 +3431,21 @@ document.getElementById('cancel-edit-btn').addEventListener('click', () => {
     toggleResultEditMode(false);
 });
 
-document.getElementById('save-edit-btn').addEventListener('click', () => {
-    if (resultEditorTextarea && currentCandidateIndex > -1) {
-        const newText = resultEditorTextarea.value;
-        regenerationCandidates[currentCandidateIndex] = newText;
-        document.getElementById('result-area').innerText = newText;
+        document.getElementById('save-edit-btn').addEventListener('click', () => {
+            if (resultEditorTextarea && currentCandidateIndex > -1) {
+                const newText = resultEditorTextarea.value;
+                // 修正：更新对象中的续写内容
+                regenerationCandidates[currentCandidateIndex].content = newText;
+                document.getElementById('result-area').innerText = newText;
 
-        // 更新本地存储
-        localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
+                // 更新本地存储
+                localStorage.setItem('regenerationCandidates', JSON.stringify(regenerationCandidates));
 
-        toggleResultEditMode(false);
-        showToast('保存成功！', 2000);
-    }
-});
+                toggleResultEditMode(false);
+                showToast('保存成功！', 2000);
+            }
+        });
+
 // --- 新增：为人设补充框添加高度自动增长功能 ---
 function autoGrowTextarea(element) {
     element.style.height = "auto";
@@ -3371,10 +3459,96 @@ document.querySelectorAll('#protagonist-notes-input, #char-notes-input').forEach
     // 初始化时也调用一次，以防刷新页面时有缓存内容
     autoGrowTextarea(textarea);
 });
+        // --- 新增：点击思维链内容区域可收起下拉框 ---
+        document.getElementById('thought-chain-content').addEventListener('click', function() {
+            const detailsElement = this.closest('details');
+            if (detailsElement && detailsElement.open) {
+                detailsElement.open = false;
+            }
+        });
+        // --- 全新功能：导入创作历史 ---
+        const importHistoryBtn = document.getElementById('import-history-btn');
+        const historyFileInput = document.getElementById('history-file-input');
+
+        // 1. 点击导入按钮时，触发隐藏的文件选择框
+        importHistoryBtn.addEventListener('click', () => {
+            historyFileInput.click();
+        });
+
+        // 2. 当用户选择了文件后
+        historyFileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return; // 用户取消了选择
+            }
+
+            const reader = new FileReader();
+
+            // 3. 读取文件内容
+            reader.onload = (e) => {
+                const content = e.target.result;
+                try {
+                    // 4. 解析文件内容
+                    const chapters = [];
+                    const parts = content.split(/\n\n\n/); // 导出的文件用三个换行符分隔章节
+
+                    parts.forEach((part, index) => {
+                        const firstNewLine = part.indexOf('\n\n');
+                        if (firstNewLine === -1) return; // 格式不正确，跳过
+
+                        const chapterContent = part.substring(firstNewLine + 2).trim();
+                        if (chapterContent) {
+                            chapters.push({
+                                type: index === 0 ? 'original' : 'generated',
+                                content: chapterContent
+                            });
+                        }
+                    });
+
+                    if (chapters.length === 0) {
+                        throw new Error("文件内容格式不正确或为空。");
+                    }
+
+                    // 5. 使用文件名作为默认标题
+                    const storyName = file.name.replace(/\.txt$/, '') || '导入的创作';
+
+                    // 6. 保存到 localStorage
+                    const stories = JSON.parse(localStorage.getItem('savedStories') || '[]');
+                    const newStory = {
+                        id: `story_${Date.now()}`,
+                        name: storyName,
+                        chapters: chapters
+                    };
+                    stories.push(newStory);
+                    localStorage.setItem('savedStories', JSON.stringify(stories));
+
+                    // 7. 刷新历史列表并提示用户
+                    showAlert(`成功导入创作：“${storyName}”！`);
+                    renderHistoryList();
+
+                } catch (error) {
+                    console.error("导入失败:", error);
+                    showAlert(`导入失败！请确保你选择的是由本工具导出的 .txt 全文文件。\n\n错误详情: ${error.message}`);
+                } finally {
+                    // 清空文件输入框，以便下次可以导入同名文件
+                    event.target.value = null;
+                }
+            };
+            
+            reader.onerror = () => {
+                 showAlert('读取文件时发生错误！');
+                 event.target.value = null;
+            };
+
+            reader.readAsText(file);
+        });        
     });
     </script>
     <div id="toast-notification"></div>
     <textarea id="changelog-source" style="display:none;">
+## v2.2 - 2025-10-01
+- 优化：新增思维链区域，解决了时不时的漏思维链问题（还能偶尔看看AI到底咋想的）
+* 新增：现在也可以导入创作历史了
 ## v2.1 - 2025-09-28
 * 新增：在点餐环节设置了人设/世界观等长久设定放置处（太长的还是建议放提示词里头）
 * 新增：现在生成的消息可以进行编辑了
