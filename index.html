@@ -151,6 +151,36 @@
             margin: 0 0 8px 0;
             font-size: 14px;
             color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .refresh-link {
+            color: var(--accent);
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: opacity 0.2s;
+        }
+        .refresh-link:hover {
+            opacity: 0.8;
+        }
+        .refresh-link.loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .refresh-link svg {
+            margin-right: 4px;
+            transform-origin: center;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinning {
+            animation: spin 0.8s linear infinite;
         }
         .list-toggle {
             color: var(--accent);
@@ -243,7 +273,16 @@
                 <button class="primary" id="btn-submit" onclick="submitRegister()">提交报名</button>
 
                 <div class="status-box">
-                    <p>当前报名人数：<strong id="user-count">0</strong> 人</p>
+                    <p>
+                        <span>当前报名人数：<strong id="user-count">0</strong> 人</span>
+                        <a class="refresh-link" onclick="triggerRefresh()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                                <path d="M21 3v5h-5"></path>
+                            </svg>
+                            <span>刷新</span>
+                        </a>
+                    </p>
                     <span class="list-toggle" onclick="toggleList()">查看已报名名单</span>
                     <div class="name-list" id="user-list">（暂无数据）</div>
                 </div>
@@ -255,14 +294,14 @@
                     <input type="password" id="admin-pwd" placeholder="输入暗号">
                 </div>
                 <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
-                <button class="secondary" id="btn-reset" onclick="submitReset()">重置表格（再开一局）</button>
-                <p style="font-size: 12px; color: var(--text-light); margin-top: 12px;">注：点击分配后结果会通过邮件自动发送，且原始地址立即从表格中销毁。</p>
+                <button class="secondary" id="btn-reset" onclick="submitReset()">手动重置表格（备用）</button>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: 12px;">注：点击分配后，系统发完通知邮件会全自动销毁并格式化表格所有内容。</p>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzGdY-NN9EIbhHhT8icHszd8X4rP91GQDI1iA2X2viY4AUiGBHKxp6j-eBjaUVsYSRKjQ/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbyZFf3xA9zmUIKiF4V_6-ScAeqB8H1GwOsY_07exUez07I1UU0e0ZODRobNSQ1wQuNOyQ/exec"; 
         
         let refreshTimer = null;
 
@@ -354,12 +393,35 @@
             }
         }
 
+        async function triggerRefresh() {
+            const link = document.querySelector('.refresh-link');
+            const svg = link.querySelector('svg');
+            const text = link.querySelector('span');
+            
+            if (link.classList.contains('loading')) return;
+            
+            link.classList.add('loading');
+            if (svg) svg.classList.add('spinning');
+            if (text) text.innerText = "同步中";
+            
+            await loadList();
+            
+            link.classList.remove('loading');
+            if (svg) svg.classList.remove('spinning');
+            if (text) text.innerText = "刷新";
+            showToast("名单已同步最新状态");
+        }
+
         async function submitAssign() {
             const pwd = document.getElementById('admin-pwd').value;
             if (!pwd) return showToast("请输入密码");
 
             const res = await requestGas({ action: 'assign', password: pwd }, 'btn-assign');
             showToast(res.message);
+            if(res.success) {
+                document.getElementById('admin-pwd').value = '';
+                loadList();
+            }
         }
 
         async function submitReset() {
