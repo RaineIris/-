@@ -104,8 +104,9 @@
             background-color: #fff;
         }
         textarea {
-            resize: vertical;
-            min-height: 80px;
+            resize: none;
+            min-height: 40px;
+            overflow-y: hidden;
         }
         button.primary {
             width: 100%;
@@ -168,19 +169,11 @@
             opacity: 0.8;
         }
         .refresh-link.loading {
-            opacity: 0.5;
+            opacity: 0.6;
             pointer-events: none;
         }
         .refresh-link svg {
             margin-right: 4px;
-            transform-origin: center;
-        }
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        .spinning {
-            animation: spin 0.8s linear infinite;
         }
         .list-toggle {
             color: var(--accent);
@@ -214,22 +207,61 @@
             transition: opacity 0.3s;
             z-index: 1000;
         }
-        .radio-group {
+        .radio-group, .checkbox-group {
             display: flex;
-            gap: 20px;
+            flex-direction: column;
+            gap: 8px;
             margin-bottom: 8px;
             margin-top: 4px;
         }
-        .radio-group label {
+        .radio-group label, .checkbox-group label {
             display: inline-flex;
             align-items: center;
             font-size: 14px;
             cursor: pointer;
         }
-        .radio-group input {
+        .radio-group input, .checkbox-group input {
             width: auto;
             margin-right: 6px;
             background: none;
+        }
+        .dropdown-container {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            background: #faf9f7;
+            margin-top: 6px;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .dropdown-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 16px;
+            background: #fdfaf8;
+            border: 1px dashed var(--accent);
+            border-radius: 8px;
+            display: none;
+        }
+        .result-box h3 {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            color: var(--text-light);
+        }
+        .result-box p {
+            margin: 0 0 12px 0;
+            font-size: 15px;
+            font-weight: 500;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .result-box p:last-child {
+            margin-bottom: 0;
         }
     </style>
 </head>
@@ -244,6 +276,7 @@
         
         <div class="nav">
             <button class="nav-btn active" onclick="switchTab('register')">我要报名</button>
+            <button class="nav-btn" onclick="switchTab('query')">查询提醒</button>
             <button class="nav-btn" onclick="switchTab('admin')">管理</button>
         </div>
 
@@ -254,21 +287,71 @@
                     <input type="text" id="reg-name" placeholder="输入昵称">
                 </div>
                 <div class="form-group">
+                    <label>设置查询密码（4位数字）</label>
+                    <input type="password" id="reg-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="设置4位数字密码">
+                </div>
+                <div class="form-group">
                     <label>你的QQ邮箱（用于接收自动通知）</label>
                     <input type="email" id="reg-email" placeholder="输入邮箱，如：123456@qq.com">
                 </div>
                 <div class="form-group">
-                    <label>是否有忌口要求？</label>
+                    <label>可点时间</label>
                     <div class="radio-group">
-                        <label><input type="radio" name="diet-choice" value="无" checked onclick="toggleDietInput(false)"> 无</label>
-                        <label><input type="radio" name="diet-choice" value="有" onclick="toggleDietInput(true)"> 填写</label>
+                        <label><input type="radio" name="time-choice" value="我都行！" checked onclick="toggleInputDisplay('reg-time-input', false)"> 我都行！</label>
+                        <label><input type="radio" name="time-choice" value="填写" onclick="toggleInputDisplay('reg-time-input', true)"> 填写时间</label>
                     </div>
-                    <input type="text" id="reg-diet" placeholder="输入忌口（如：不吃香菜等）" style="display: none; margin-top: 6px;">
+                    <textarea id="reg-time-input" placeholder="输入具体方便接收外卖的时间段" style="display: none; margin-top: 6px;" class="auto-grow"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>你的地址</label>
-                    <textarea id="reg-address" placeholder="详细地址+联系方式（仅对方可见）"></textarea>
-                    <span class="form-hint">※ 需要手机号 and 地址，但别填名字</span>
+                    <label>可以接受什么种类（多选）</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="cate-any" checked onclick="handleCategoryAny(this)"> 无所谓</label>
+                        <label><input type="checkbox" id="cate-select" onclick="toggleInputDisplay('cate-dropdown', this.checked)"> 指定种类</label>
+                        <div class="dropdown-container" id="cate-dropdown">
+                            <div class="dropdown-grid">
+                                <label><input type="checkbox" name="food-cate" value="果茶" onclick="syncCategoryChoice()"> 果茶</label>
+                                <label><input type="checkbox" name="food-cate" value="奶茶" onclick="syncCategoryChoice()"> 奶茶</label>
+                                <label><input type="checkbox" name="food-cate" value="咖啡" onclick="syncCategoryChoice()"> 咖啡</label>
+                                <label><input type="checkbox" name="food-cate" value="甜点" onclick="syncCategoryChoice()"> 甜点</label>
+                                <label><input type="checkbox" name="food-cate" value="面食" onclick="syncCategoryChoice()"> 面食</label>
+                                <label><input type="checkbox" name="food-cate" value="饭类" onclick="syncCategoryChoice()"> 饭类</label>
+                                <label><input type="checkbox" name="food-cate" value="西餐" onclick="syncCategoryChoice()"> 西餐</label>
+                                <label><input type="checkbox" name="food-cate" value="麻辣烫冒菜" onclick="syncCategoryChoice()"> 麻辣烫冒菜</label>
+                                <label><input type="checkbox" name="food-cate" value="轻食沙拉" onclick="syncCategoryChoice()"> 轻食沙拉</label>
+                                <label><input type="checkbox" name="food-cate" value="饺子馄饨" onclick="syncCategoryChoice()"> 饺子馄饨</label>
+                                <label><input type="checkbox" name="food-cate" value="炸鸡炸串" onclick="syncCategoryChoice()"> 炸鸡炸串</label>
+                                <label><input type="checkbox" name="food-cate" value="鸭脖卤味" onclick="syncCategoryChoice()"> 鸭脖卤味</label>
+                                <label><input type="checkbox" name="food-cate" value="龙虾烧烤" onclick="syncCategoryChoice()"> 龙虾烧烤</label>
+                                <label><input type="checkbox" name="food-cate" value="意面披萨" onclick="syncCategoryChoice()"> 意面披萨</label>
+                                <label><input type="checkbox" name="food-cate" value="日料寿司" onclick="syncCategoryChoice()"> 日料寿司</label>
+                                <label><input type="checkbox" name="food-cate" value="韩式料理" onclick="syncCategoryChoice()"> 韩式料理</label>
+                                <label><input type="checkbox" name="food-cate" value="夹馍饼类" onclick="syncCategoryChoice()"> 夹馍饼类</label>
+                                <label><input type="checkbox" name="food-cate" value="特色小吃" onclick="syncCategoryChoice()"> 特色小吃</label>
+                            </div>
+                        </div>
+                        <label><input type="checkbox" id="cate-remark" onclick="toggleInputDisplay('reg-remarks-input', this.checked)"> 备注</label>
+                        <textarea id="reg-remarks-input" placeholder="输入具体的口味、分量等品类补充要求" style="display: none; margin-top: 6px;" class="auto-grow"></textarea>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>是否有忌口要求？</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="diet-choice" value="无" checked onclick="toggleInputDisplay('reg-diet', false)"> 无</label>
+                        <label><input type="radio" name="diet-choice" value="有" onclick="toggleInputDisplay('reg-diet', true)"> 填写</label>
+                    </div>
+                    <textarea id="reg-diet" placeholder="输入忌口（如：不吃香菜等）" style="display: none; margin-top: 6px;" class="auto-grow"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>许愿栏 <span class="form-hint">※ 许愿时间！不许许愿太过具体的东西哦（指</span></label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="wish-choice" value="无" checked onclick="toggleInputDisplay('reg-wish-input', false)"> 无</label>
+                        <label><input type="radio" name="wish-choice" value="有" onclick="toggleInputDisplay('reg-wish-input', true)"> 填写</label>
+                    </div>
+                    <textarea id="reg-wish-input" placeholder="写下你的盲盒小愿望吧" style="display: none; margin-top: 6px;" class="auto-grow"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>你的地址</label><span class="form-hint">※ 需要手机号 and 地址，但别填名字</span>
+                    <textarea id="reg-address" placeholder="详细地址+联系方式（仅对方可见）" class="auto-grow"></textarea>
                 </div>
                 <button class="primary" id="btn-submit" onclick="submitRegister()">提交报名</button>
 
@@ -288,20 +371,48 @@
                 </div>
             </div>
 
+            <div id="query" class="section">
+                <div class="form-group">
+                    <label>输入你的报名昵称</label>
+                    <input type="text" id="query-name" placeholder="你报名时填的昵称">
+                </div>
+                <div class="form-group">
+                    <label>输入你的查询密码</label>
+                    <input type="password" id="query-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="输入4位数字密码">
+                </div>
+                <button class="primary" id="btn-query" onclick="submitQuery()">查询我的盲盒任务</button>
+
+                <div class="result-box" id="query-result">
+                    <h3>你需要送往的地址：</h3>
+                    <p id="target-address"></p>
+                    <h3>对方的忌口要求：</h3>
+                    <p id="target-diet"></p>
+                    <h3>可点时间：</h3>
+                    <p id="target-time"></p>
+                    <h3>接受种类：</h3>
+                    <p id="target-categories"></p>
+                    <h3>品类备注：</h3>
+                    <p id="target-remarks"></p>
+                    <h3>对方的愿望：</h3>
+                    <p id="target-wishlist"></p>
+                    <button class="primary" id="btn-remind" onclick="submitRemind()" style="margin-top: 16px; background-color: #444;">我准备点了，提醒对方</button>
+                </div>
+            </div>
+
             <div id="admin" class="section">
                 <div class="form-group">
                     <label>管理员暗号</label>
                     <input type="password" id="admin-pwd" placeholder="输入暗号">
                 </div>
                 <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
-                <button class="secondary" id="btn-reset" onclick="submitReset()">手动重置表格（备用）</button>
-                <p style="font-size: 12px; color: var(--text-light); margin-top: 12px;">注：点击分配后，系统发完通知邮件会全自动销毁并格式化表格所有内容。</p>
+                <button class="secondary" id="btn-reset" onclick="submitReset()">手动重置表格（再开一轮）</button>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: 12px;">注：分配完成后数据将保留供查询，开启新一轮请点击重置表格。</p>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyZFf3xA9zmUIKiF4V_6-ScAeqB8H1GwOsY_07exUez07I1UU0e0ZODRobNSQ1wQuNOyQ/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbwLRNcGSPn4OzsE8GX62FjJ9MW6gUkrLBaURHR9y3elHKtIcse2-p8MYB5moAfqIze7jA/exec"; 
         
         let refreshTimer = null;
 
@@ -312,9 +423,38 @@
             setTimeout(() => { toast.style.opacity = '0'; }, 3000);
         }
 
-        function toggleDietInput(show) {
-            document.getElementById('reg-diet').style.display = show ? 'block' : 'none';
-            if(!show) document.getElementById('reg-diet').value = '';
+        // 高度自适应输入框处理
+        document.querySelectorAll('textarea.auto-grow').forEach(el => {
+            el.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        });
+
+        function toggleInputDisplay(id, show) {
+            const el = document.getElementById(id);
+            el.style.display = show ? 'block' : 'none';
+            if(!show) {
+                el.value = '';
+                if(el.classList.contains('auto-grow')) el.style.height = 'auto';
+            }
+        }
+
+        function handleCategoryAny(checkbox) {
+            if (checkbox.checked) {
+                document.getElementById('cate-select').checked = false;
+                document.getElementById('cate-remark').checked = false;
+                toggleInputDisplay('cate-dropdown', false);
+                toggleInputDisplay('reg-remarks-input', false);
+                document.querySelectorAll('input[name="food-cate"]').forEach(c => c.checked = false);
+            }
+        }
+
+        function syncCategoryChoice() {
+            const checkedCates = document.querySelectorAll('input[name="food-cate"]:checked');
+            if(checkedCates.length > 0) {
+                document.getElementById('cate-any').checked = false;
+            }
         }
 
         function switchTab(tabId) {
@@ -360,25 +500,60 @@
 
         async function submitRegister() {
             const name = document.getElementById('reg-name').value.trim();
+            const pwd = document.getElementById('reg-pwd').value.trim();
             const email = document.getElementById('reg-email').value.trim();
             const addr = document.getElementById('reg-address').value.trim();
             
-            const hasDiet = document.querySelector('input[name="diet-choice"]:checked').value === '有';
-            const diet = hasDiet ? document.getElementById('reg-diet').value.trim() : "无";
+            if (!name || !pwd || !email || !addr) return showToast("昵称、密码、邮箱、地址均为必填项");
+            if (pwd.length !== 4 || isNaN(pwd)) return showToast("密码必须是4位数字");
 
-            if (!name || !email || !addr) return showToast("所有项均为必填项");
-            if (hasDiet && !diet) return showToast("请填写你的忌口要求");
+            const timeChoice = document.querySelector('input[name="time-choice"]:checked').value;
+            const time = timeChoice === '填写' ? document.getElementById('reg-time-input').value.trim() : "我都行！";
+            if(timeChoice === '填写' && !time) return showToast("请填写具体的时间范围");
 
-            const res = await requestGas({ action: 'register', nickname: name, email: email, address: addr, diet: diet }, 'btn-submit');
+            let categories = "无所谓";
+            if (document.getElementById('cate-select').checked) {
+                const chosen = Array.from(document.querySelectorAll('input[name="food-cate"]:checked')).map(c => c.value);
+                if(chosen.length === 0) return showToast("请在下拉框中选择具体接受的种类");
+                categories = chosen.join('、');
+            }
+            
+            const remarks = document.getElementById('cate-remark').checked ? document.getElementById('reg-remarks-input').value.trim() : "无";
+            if(document.getElementById('cate-remark').checked && !remarks) return showToast("请填写品类备注要求");
+
+            const diet = document.querySelector('input[name="diet-choice"]:checked').value === '有' ? document.getElementById('reg-diet').value.trim() : "无";
+            if(document.querySelector('input[name="diet-choice"]:checked').value === '有' && !diet) return showToast("请填写你的忌口要求");
+
+            const wishlist = document.querySelector('input[name="wish-choice"]:checked').value === '有' ? document.getElementById('reg-wish-input').value.trim() : "无";
+            if(document.querySelector('input[name="wish-choice"]:checked').value === '有' && !wishlist) return showToast("请写下你的愿望");
+
+            const res = await requestGas({ 
+                action: 'register', nickname: name, password: pwd, email: email, address: addr, 
+                time: time, categories: categories, remarks: remarks, diet: diet, wishlist: wishlist 
+            }, 'btn-submit');
             
             if (res.success) {
                 showToast("报名成功！");
                 document.getElementById('reg-name').value = '';
+                document.getElementById('reg-pwd').value = '';
                 document.getElementById('reg-email').value = '';
                 document.getElementById('reg-address').value = '';
+                document.getElementById('reg-time-input').value = '';
+                document.getElementById('reg-remarks-input').value = '';
                 document.getElementById('reg-diet').value = '';
+                document.getElementById('reg-wish-input').value = '';
+                document.getElementById('cate-any').checked = true;
+                document.getElementById('cate-select').checked = false;
+                document.getElementById('cate-remark').checked = false;
+                document.querySelectorAll('input[name="food-cate"]').forEach(c => c.checked = false);
+                document.querySelectorAll('input[name="time-choice"]')[0].checked = true;
                 document.querySelectorAll('input[name="diet-choice"]')[0].checked = true;
-                toggleDietInput(false);
+                document.querySelectorAll('input[name="wish-choice"]')[0].checked = true;
+                toggleInputDisplay('reg-time-input', false);
+                toggleInputDisplay('cate-dropdown', false);
+                toggleInputDisplay('reg-remarks-input', false);
+                toggleInputDisplay('reg-diet', false);
+                toggleInputDisplay('reg-wish-input', false);
                 loadList();
             } else {
                 showToast(res.message);
@@ -395,21 +570,52 @@
 
         async function triggerRefresh() {
             const link = document.querySelector('.refresh-link');
-            const svg = link.querySelector('svg');
             const text = link.querySelector('span');
             
             if (link.classList.contains('loading')) return;
             
             link.classList.add('loading');
-            if (svg) svg.classList.add('spinning');
-            if (text) text.innerText = "同步中";
+            text.innerText = "查询中...";
             
             await loadList();
             
-            link.classList.remove('loading');
-            if (svg) svg.classList.remove('spinning');
-            if (text) text.innerText = "刷新";
-            showToast("名单已同步最新状态");
+            setTimeout(() => {
+                link.classList.remove('loading');
+                text.innerText = "刷新";
+                showToast("名单已同步最新状态");
+            }, 300);
+        }
+
+        async function submitQuery() {
+            const name = document.getElementById('query-name').value.trim();
+            const pwd = document.getElementById('query-pwd').value.trim();
+            if (!name || !pwd) return showToast("昵称和密码不能为空");
+
+            const res = await requestGas({ action: 'query', nickname: name, password: pwd }, 'btn-query');
+            
+            const resultBox = document.getElementById('query-result');
+            if (res.success) {
+                document.getElementById('target-address').innerText = res.address;
+                document.getElementById('target-diet').innerText = res.diet;
+                document.getElementById('target-time').innerText = res.time;
+                document.getElementById('target-categories').innerText = res.categories;
+                document.getElementById('target-remarks').innerText = res.remarks;
+                document.getElementById('target-wishlist').innerText = res.wishlist;
+                resultBox.style.display = 'block';
+            } else {
+                resultBox.style.display = 'none';
+                showToast(res.message);
+            }
+        }
+
+        async function submitRemind() {
+            const name = document.getElementById('query-name').value.trim();
+            const pwd = document.getElementById('query-pwd').value.trim();
+            
+            if(!confirm("确定要发送点单提醒给对方吗？（对方邮箱将收到通知，但不会暴露你的身份）")) return;
+            
+            const res = await requestGas({ action: 'remind', nickname: name, password: pwd }, 'btn-remind');
+            showToast(res.message);
         }
 
         async function submitAssign() {
@@ -427,12 +633,13 @@
         async function submitReset() {
             const pwd = document.getElementById('admin-pwd').value;
             if (!pwd) return showToast("请先在上方输入管理员暗号");
-            if (!confirm("确定要清空全部数据再开一局吗？此操作不可逆！")) return;
+            if (!confirm("确定要清空全部数据并开启新一轮吗？此操作不可逆！")) return;
 
             const res = await requestGas({ action: 'reset', password: pwd }, 'btn-reset');
             showToast(res.message);
             if(res.success) {
                 document.getElementById('admin-pwd').value = '';
+                document.getElementById('query-result').style.display = 'none';
                 loadList();
             }
         }
