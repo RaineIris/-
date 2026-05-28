@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>杨枝甘露盲盒</title>
+    <title>神秘小盲盒</title>
     <style>
         :root {
             --bg-color: #f5f4f1;
@@ -121,6 +121,21 @@
         button.primary:hover {
             background-color: var(--accent-hover);
         }
+        button.secondary {
+            width: 100%;
+            padding: 12px;
+            background-color: #737373;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: background 0.2s;
+        }
+        button.secondary:hover {
+            background-color: #525252;
+        }
         button:disabled {
             opacity: 0.7;
             cursor: not-allowed;
@@ -154,26 +169,6 @@
         .name-list.show {
             display: block;
         }
-        .result-box {
-            margin-top: 20px;
-            padding: 16px;
-            background: #fdfaf8;
-            border: 1px dashed var(--accent);
-            border-radius: 8px;
-            display: none;
-        }
-        .result-box h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: var(--text-light);
-        }
-        .result-box p {
-            margin: 0;
-            font-size: 16px;
-            font-weight: 500;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
         .toast {
             position: fixed;
             top: 20px;
@@ -189,6 +184,23 @@
             transition: opacity 0.3s;
             z-index: 1000;
         }
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 8px;
+            margin-top: 4px;
+        }
+        .radio-group label {
+            display: inline-flex;
+            align-items: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .radio-group input {
+            width: auto;
+            margin-right: 6px;
+            background: none;
+        }
     </style>
 </head>
 <body>
@@ -197,25 +209,36 @@
 
     <div class="container">
         <div class="header">
-            <h1>杨枝甘露盲盒</h1>
+            <h1>神秘小盲盒</h1>
         </div>
         
         <div class="nav">
             <button class="nav-btn active" onclick="switchTab('register')">我要报名</button>
-            <button class="nav-btn" onclick="switchTab('query')">查询分配</button>
             <button class="nav-btn" onclick="switchTab('admin')">管理</button>
         </div>
 
         <div class="content">
             <div id="register" class="section active">
                 <div class="form-group">
-                    <label>你的昵称（查询时需要用到）</label>
+                    <label>你的昵称（用于名单公示）</label>
                     <input type="text" id="reg-name" placeholder="输入昵称">
+                </div>
+                <div class="form-group">
+                    <label>你的QQ邮箱（用于接收自动通知）</label>
+                    <input type="email" id="reg-email" placeholder="输入邮箱，如：123456@qq.com">
+                </div>
+                <div class="form-group">
+                    <label>是否有忌口要求？</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="diet-choice" value="无" checked onclick="toggleDietInput(false)"> 无</label>
+                        <label><input type="radio" name="diet-choice" value="有" onclick="toggleDietInput(true)"> 填写</label>
+                    </div>
+                    <input type="text" id="reg-diet" placeholder="输入忌口（如：不吃香菜等）" style="display: none; margin-top: 6px;">
                 </div>
                 <div class="form-group">
                     <label>你的地址</label>
                     <textarea id="reg-address" placeholder="详细地址+联系方式（仅对方可见）"></textarea>
-                    <span class="form-hint">※ 需要手机号和地址，但别填名字</span>
+                    <span class="form-hint">※ 需要手机号 and 地址，但别填名字</span>
                 </div>
                 <button class="primary" id="btn-submit" onclick="submitRegister()">提交报名</button>
 
@@ -226,32 +249,20 @@
                 </div>
             </div>
 
-            <div id="query" class="section">
-                <div class="form-group">
-                    <label>输入你的报名昵称</label>
-                    <input type="text" id="query-name" placeholder="你报名时填的昵称">
-                </div>
-                <button class="primary" id="btn-query" onclick="submitQuery()">查询我要送给谁</button>
-
-                <div class="result-box" id="query-result">
-                    <h3>你需要送往的地址：</h3>
-                    <p id="target-address"></p>
-                </div>
-            </div>
-
             <div id="admin" class="section">
                 <div class="form-group">
                     <label>管理员暗号</label>
                     <input type="password" id="admin-pwd" placeholder="输入暗号">
                 </div>
-                <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发分配</button>
-                <p style="font-size: 12px; color: var(--text-light); margin-top: 12px;">注：点击分配后，系统会将地址随机打乱。每个人都不会抽到自己。</p>
+                <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
+                <button class="secondary" id="btn-reset" onclick="submitReset()">重置表格（再开一局）</button>
+                <p style="font-size: 12px; color: var(--text-light); margin-top: 12px;">注：点击分配后结果会通过邮件自动发送，且原始地址立即从表格中销毁。</p>
             </div>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxp7_QvVOUL2cl1-rRog4ujANkFImRaTeYu-nHi5SYqJtdg6TzpQnpDoze76SpNaTNV/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbzGdY-NN9EIbhHhT8icHszd8X4rP91GQDI1iA2X2viY4AUiGBHKxp6j-eBjaUVsYSRKjQ/exec"; 
         
         let refreshTimer = null;
 
@@ -260,6 +271,11 @@
             toast.textContent = msg;
             toast.style.opacity = '1';
             setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        }
+
+        function toggleDietInput(show) {
+            document.getElementById('reg-diet').style.display = show ? 'block' : 'none';
+            if(!show) document.getElementById('reg-diet').value = '';
         }
 
         function switchTab(tabId) {
@@ -283,7 +299,7 @@
 
         async function requestGas(data, btnId) {
             const btn = document.getElementById(btnId);
-            if(btn) { btn.disabled = true; btn.innerText = "处理中..."; }
+            if(btn) { btn.disabled = true; btn.dataset.oldText = btn.innerText; btn.innerText = "处理中..."; }
             
             try {
                 const response = await fetch(API_URL, {
@@ -293,10 +309,10 @@
                 });
                 const res = await response.json();
                 
-                if(btn) { btn.disabled = false; btn.innerText = btn.dataset.originalText || "确认"; }
+                if(btn) { btn.disabled = false; btn.innerText = btn.dataset.oldText; }
                 return res;
             } catch (err) {
-                if(btn) { btn.disabled = false; btn.innerText = btn.dataset.originalText || "确认"; }
+                if(btn) { btn.disabled = false; btn.innerText = btn.dataset.oldText; }
                 showToast("网络请求失败");
                 console.error(err);
                 return { success: false, message: "网络异常" };
@@ -305,16 +321,25 @@
 
         async function submitRegister() {
             const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
             const addr = document.getElementById('reg-address').value.trim();
-            if (!name || !addr) return showToast("昵称和地址不能为空");
+            
+            const hasDiet = document.querySelector('input[name="diet-choice"]:checked').value === '有';
+            const diet = hasDiet ? document.getElementById('reg-diet').value.trim() : "无";
 
-            document.getElementById('btn-submit').dataset.originalText = "提交报名";
-            const res = await requestGas({ action: 'register', nickname: name, address: addr }, 'btn-submit');
+            if (!name || !email || !addr) return showToast("所有项均为必填项");
+            if (hasDiet && !diet) return showToast("请填写你的忌口要求");
+
+            const res = await requestGas({ action: 'register', nickname: name, email: email, address: addr, diet: diet }, 'btn-submit');
             
             if (res.success) {
                 showToast("报名成功！");
                 document.getElementById('reg-name').value = '';
+                document.getElementById('reg-email').value = '';
                 document.getElementById('reg-address').value = '';
+                document.getElementById('reg-diet').value = '';
+                document.querySelectorAll('input[name="diet-choice"]')[0].checked = true;
+                toggleDietInput(false);
                 loadList();
             } else {
                 showToast(res.message);
@@ -329,30 +354,25 @@
             }
         }
 
-        async function submitQuery() {
-            const name = document.getElementById('query-name').value.trim();
-            if (!name) return showToast("请输入昵称");
-
-            document.getElementById('btn-query').dataset.originalText = "查询我要送给谁";
-            const res = await requestGas({ action: 'query', nickname: name }, 'btn-query');
-            
-            const resultBox = document.getElementById('query-result');
-            if (res.success) {
-                document.getElementById('target-address').innerText = res.address;
-                resultBox.style.display = 'block';
-            } else {
-                resultBox.style.display = 'none';
-                showToast(res.message);
-            }
-        }
-
         async function submitAssign() {
             const pwd = document.getElementById('admin-pwd').value;
             if (!pwd) return showToast("请输入密码");
 
-            document.getElementById('btn-assign').dataset.originalText = "截止报名并触发分配";
             const res = await requestGas({ action: 'assign', password: pwd }, 'btn-assign');
-            showToast(res.message || (res.success ? "分配成功" : "分配失败"));
+            showToast(res.message);
+        }
+
+        async function submitReset() {
+            const pwd = document.getElementById('admin-pwd').value;
+            if (!pwd) return showToast("请先在上方输入管理员暗号");
+            if (!confirm("确定要清空全部数据再开一局吗？此操作不可逆！")) return;
+
+            const res = await requestGas({ action: 'reset', password: pwd }, 'btn-reset');
+            showToast(res.message);
+            if(res.success) {
+                document.getElementById('admin-pwd').value = '';
+                loadList();
+            }
         }
 
         window.onload = () => { loadList(); refreshTimer = setInterval(loadList, 20000); };
