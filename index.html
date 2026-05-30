@@ -146,16 +146,19 @@
         /* 浮动锁按钮 */
         .float-lock{display:none;position:fixed;right:0;top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--border);border-right:none;border-radius:8px 0 0 8px;padding:12px 10px;cursor:pointer;box-shadow:-2px 0 12px rgba(0,0,0,.08);z-index:990;color:var(--light);transition:color .2s,background .2s;}
         .float-lock:hover{background:#f5f4f1;color:var(--accent);}
-.secret-overlay{display:none;position:fixed;inset:0;background:rgba(8,10,16,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:3000;align-items:center;justify-content:center;}
-.secret-overlay.show{display:flex;}
-.secret-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:40px 36px;width:188px;text-align:center;position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.06);}
-.secret-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);}
-.secret-input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.9);width:100%;text-align:center;letter-spacing:12px;font-size:20px;padding:6px 0;outline:none;font-family:inherit;transition:border-color .2s;}
-.secret-input:focus{border-bottom-color:rgba(255,255,255,.4);}
-@keyframes secretShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-.secret-input.shake{animation:secretShake .4s ease;}
-.check-anim{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:rgba(8,10,16,.9);border-radius:4px;}
-.check-anim.show{display:flex;}
+
+        /* 神秘弹窗 */
+        .secret-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:3000;align-items:center;justify-content:center;}
+        .secret-overlay.show{display:flex;}
+        .secret-box{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:16px;padding:44px 36px;width:180px;text-align:center;position:relative;overflow:hidden;}
+        .secret-input{background:transparent;border:none;border-bottom:1px solid #2a2a2a;color:#fff;width:100%;text-align:center;letter-spacing:10px;font-size:22px;padding:8px 0;outline:none;font-family:inherit;transition:border-color .2s;}
+        .secret-input:focus{border-bottom-color:#444;}
+        @keyframes secretShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+        .secret-input.shake{animation:secretShake .4s ease;}
+
+        /* ✓动画 */
+        .check-anim{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:#0d0d0d;border-radius:16px;}
+        .check-anim.show{display:flex;}
         @keyframes drawCircle{from{stroke-dashoffset:126;}to{stroke-dashoffset:0;}}
         @keyframes drawCheck{from{stroke-dashoffset:50;}to{stroke-dashoffset:0;}}
 
@@ -180,11 +183,39 @@
 <!-- 神秘弹窗 -->
 <div class="secret-overlay" id="secretOverlay" onclick="handleOverlayClick(event)">
     <div class="secret-box" id="secretBox">
-        <input class="secret-input" type="password" id="secretKey" inputmode="numeric" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')verifySecret()">
+        <div class="secret-lock-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="secret-dots" id="secretDots">
+            <div class="secret-dot" id="dot0"></div>
+            <div class="secret-dot" id="dot1"></div>
+            <div class="secret-dot" id="dot2"></div>
+            <div class="secret-dot" id="dot3"></div>
+            <div class="secret-dot" id="dot4"></div>
+            <div class="secret-dot" id="dot5"></div>
+            <div class="secret-dot" id="dot6"></div>
+            <div class="secret-dot" id="dot7"></div>
+        </div>
+        <div class="secret-numpad">
+            <button class="secret-key" onclick="secretInput('1')">1</button>
+            <button class="secret-key" onclick="secretInput('2')">2<span class="sub">ABC</span></button>
+            <button class="secret-key" onclick="secretInput('3')">3<span class="sub">DEF</span></button>
+            <button class="secret-key" onclick="secretInput('4')">4<span class="sub">GHI</span></button>
+            <button class="secret-key" onclick="secretInput('5')">5<span class="sub">JKL</span></button>
+            <button class="secret-key" onclick="secretInput('6')">6<span class="sub">MNO</span></button>
+            <button class="secret-key" onclick="secretInput('7')">7<span class="sub">PQRS</span></button>
+            <button class="secret-key" onclick="secretInput('8')">8<span class="sub">TUV</span></button>
+            <button class="secret-key" onclick="secretInput('9')">9<span class="sub">WXYZ</span></button>
+            <button class="secret-key empty"></button>
+            <button class="secret-key" onclick="secretInput('0')">0</button>
+            <button class="secret-key del" onclick="secretDelete()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+            </button>
+        </div>
         <div class="check-anim" id="checkAnim">
             <svg width="72" height="72" viewBox="0 0 50 50">
-                <circle class="check-circle" cx="25" cy="25" r="20" fill="none" stroke="#4CAF50" stroke-width="2" stroke-dasharray="126" stroke-dashoffset="126"/>
-                <polyline class="check-mark" points="15,25 22,33 36,16" fill="none" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="50" stroke-dashoffset="50"/>
+                <circle class="check-circle" cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.5" stroke-dasharray="126" stroke-dashoffset="126"/>
+                <polyline class="check-mark" points="15,25 22,33 36,16" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="50" stroke-dashoffset="50"/>
             </svg>
         </div>
     </div>
@@ -427,7 +458,7 @@
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwiwi-4cuNfdiEnTzwA6_r1jUzXLb5l4aJ2d0hzO5isA47z3-uu63QIJBOcaMOMJBvLuw/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyHlw8qP849SEp-gzByCvNp2TMm2bnXKaZpX4Go8VelcNMKkiZ0c1D49a1mnnlpKIWu2Q/exec";
     let refreshTimer = null;
     let currentNicknameList = [];
     let modalTargetNickname = '';
@@ -759,36 +790,53 @@
     }
 
     // ── 神秘弹窗 ──
+    let secretValue = '';
+
     function handleOverlayClick(e) {
         if (e.target===document.getElementById('secretOverlay')) closeSecret();
     }
 
     function closeSecret() {
         document.getElementById('secretOverlay').classList.remove('show');
-        document.getElementById('secretKey').value='';
+        secretValue = '';
+        updateDots();
         document.getElementById('checkAnim').classList.remove('show');
     }
 
+    function secretInput(digit) {
+        if (secretValue.length >= 8) return;
+        secretValue += digit;
+        updateDots();
+        if (secretValue.length === 8) setTimeout(verifySecret, 80);
+    }
+
+    function secretDelete() {
+        if (secretValue.length > 0) { secretValue = secretValue.slice(0,-1); updateDots(); }
+    }
+
+    function updateDots() {
+        for (let i = 0; i < 8; i++) {
+            const dot = document.getElementById('dot'+i);
+            dot.classList.toggle('filled', i < secretValue.length);
+            dot.classList.remove('error');
+        }
+    }
+
     function verifySecret() {
-        const key = document.getElementById('secretKey').value;
-        if (key==='08270430') {
-            // 播放✓动画
+        if (secretValue === '08270430') {
             const anim = document.getElementById('checkAnim');
             anim.classList.add('show');
-            // 重新触发CSS动画
             const circle = anim.querySelector('.check-circle');
             const mark = anim.querySelector('.check-mark');
             circle.style.animation='none'; mark.style.animation='none';
             circle.offsetHeight;
             circle.style.animation='drawCircle .5s ease forwards';
             mark.style.animation='drawCheck .35s ease .45s forwards';
-
             setTimeout(() => {
                 closeSecret();
                 adminUnlocked = true;
                 document.getElementById('floatLock').style.display='flex';
                 buildNicknameChecks();
-                // 恢复按钮状态
                 if (sessionStorage.getItem('assignDone')==='1') {
                     const b=document.getElementById('btn-assign'); if(b) b.disabled=true;
                 }
@@ -797,17 +845,12 @@
                 }
             }, 1100);
         } else {
-            const input = document.getElementById('secretKey');
-            input.classList.add('shake');
-            input.value='';
-            setTimeout(()=>input.classList.remove('shake'), 400);
+            for (let i=0;i<8;i++) document.getElementById('dot'+i).classList.add('error');
+            const dots = document.getElementById('secretDots');
+            dots.classList.add('shake');
+            setTimeout(() => { secretValue=''; updateDots(); dots.classList.remove('shake'); }, 500);
         }
     }
-
-    document.getElementById('secretKey').addEventListener('keydown', function(e) {
-        if (e.key==='Enter') verifySecret();
-        else if (e.key==='Escape') closeSecret();
-    });
 
     // ── 长按标题 ──
     const titleEl = document.getElementById('mainTitle');
