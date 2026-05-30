@@ -138,7 +138,7 @@
         .drawer-title{font-size:14px;font-weight:500;color:var(--light);}
         .drawer-close{background:none;border:none;cursor:pointer;color:var(--light);padding:4px;display:flex;align-items:center;width:auto;}
         .drawer-close:hover{color:var(--text);}
-        .drawer-body{padding:20px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+        .drawer-body{padding:20px;padding-bottom:48px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
         .drawer-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
         .drawer-section-title{font-size:13px;color:var(--light);margin:0 0 12px 0;font-weight:500;}
         .drawer-note{font-size:12px;color:var(--light);margin-top:12px;line-height:1.6;}
@@ -166,7 +166,6 @@
         @keyframes secretShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-8px)}35%{transform:translateX(8px)}55%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
         .secret-box.shake{animation:secretShake .45s ease;}
 
-        /* Modal */
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;}
         .modal-overlay.show{display:flex;}
         .modal-box{background:#fff;border-radius:12px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.15);}
@@ -267,6 +266,7 @@
         </div>
     </div>
 </div>
+
 
 <!-- 填写收到记录 Modal -->
 <div class="modal-overlay" id="feedbackModal">
@@ -447,7 +447,7 @@
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyHlw8qP849SEp-gzByCvNp2TMm2bnXKaZpX4Go8VelcNMKkiZ0c1D49a1mnnlpKIWu2Q/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwN9sOFGzf1k9aocwi31bpCnBVq_ApGN0ZhkOk-OhjSt-Glb9r0yz45r7T3gKfmh0VnJw/exec";
     let refreshTimer = null;
     let currentNicknameList = [];
     let modalTargetNickname = '';
@@ -456,6 +456,7 @@
     let currentQueryName = '';
     let currentQueryPwd = '';
     let adminUnlocked = false;
+    let isAssigned = false;
     let currentFeedbacks = [];
     let pressTimer = null;
 
@@ -706,6 +707,7 @@
         const res = await requestGas({ action:'getFeedback' }, null);
         if (!res.success) { showToast("加载失败，请重试"); return; }
         currentFeedbacks = res.feedbacks||[];
+        isAssigned = !!res.assigned;
         const revealed = res.revealed;
         document.getElementById('feedback-status').textContent = revealed ? '答案已揭晓' : '实时动态（每20秒自动刷新）';
 
@@ -740,6 +742,10 @@
     }
 
     function openModal(nickname) {
+        if (!isAssigned) {
+            showToast("禁止抢跑ᗜ ˰ ᗜ");
+            return;
+        }
         modalTargetNickname = nickname;
         const existing = currentFeedbacks.find(f => f.nickname===nickname);
         const hasData = existing && (existing.receivedTime||existing.receivedContent||existing.guess);
@@ -855,6 +861,7 @@
         const isOpen = drawer.classList.contains('open');
         drawer.classList.toggle('open', !isOpen);
         overlay.classList.toggle('show', !isOpen);
+        document.body.style.overflow = isOpen ? '' : 'hidden';
     }
 
     // ── 管理员操作 ──
