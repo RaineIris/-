@@ -146,15 +146,15 @@
         /* 浮动锁按钮 */
         .float-lock{display:none;position:fixed;right:0;top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--border);border-right:none;border-radius:8px 0 0 8px;padding:12px 10px;cursor:pointer;box-shadow:-2px 0 12px rgba(0,0,0,.08);z-index:990;color:var(--light);transition:color .2s,background .2s;}
         .float-lock:hover{background:#f5f4f1;color:var(--accent);}
-
-        .secret-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:3000;align-items:center;justify-content:center;}
+.secret-overlay{display:none;position:fixed;inset:0;background:rgba(8,10,16,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:3000;align-items:center;justify-content:center;}
 .secret-overlay.show{display:flex;}
-.secret-box{background:rgba(255,255,255,.96);border:none;border-radius:24px;padding:52px 44px;width:196px;text-align:center;position:relative;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.04);}
-.secret-input{background:transparent;border:none;border-bottom:1.5px solid rgba(0,0,0,.1);color:#1a1a1a;width:100%;text-align:center;letter-spacing:12px;font-size:22px;padding:8px 0;outline:none;font-family:inherit;transition:border-color .2s;}
-.secret-input:focus{border-bottom-color:rgba(0,0,0,.25);}
+.secret-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:40px 36px;width:188px;text-align:center;position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.06);}
+.secret-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);}
+.secret-input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.9);width:100%;text-align:center;letter-spacing:12px;font-size:20px;padding:6px 0;outline:none;font-family:inherit;transition:border-color .2s;}
+.secret-input:focus{border-bottom-color:rgba(255,255,255,.4);}
 @keyframes secretShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 .secret-input.shake{animation:secretShake .4s ease;}
-.check-anim{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border-radius:24px;}
+.check-anim{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:rgba(8,10,16,.9);border-radius:4px;}
 .check-anim.show{display:flex;}
         @keyframes drawCircle{from{stroke-dashoffset:126;}to{stroke-dashoffset:0;}}
         @keyframes drawCheck{from{stroke-dashoffset:50;}to{stroke-dashoffset:0;}}
