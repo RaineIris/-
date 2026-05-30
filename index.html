@@ -772,7 +772,16 @@ document.getElementById('btn-capture').style.display = 'block';
 async function captureResult() {
     const el = document.getElementById('adminQueryResult');
     if (!el.innerHTML) return;
-    const canvas = await html2canvas(el, {backgroundColor:'#ffffff',scale:2});
+    const table = el.querySelector('table');
+    if (!table) return;
+    const canvas = await html2canvas(table, {
+        backgroundColor:'#ffffff',
+        scale:2,
+        scrollX:0,
+        scrollY:0,
+        width: table.scrollWidth,
+        height: table.scrollHeight
+    });
     const a = document.createElement('a');
     a.download = '查询结果.png';
     a.href = canvas.toDataURL();
