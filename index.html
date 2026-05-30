@@ -4,23 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>神秘小盲盒</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        :root {
-            --bg: #f5f4f1; --card: #ffffff; --text: #333333;
-            --light: #666666; --accent: #d97757; --ah: #c46347;
-            --border: #e6e4df; --green: #4a9e6b; --red: #c0392b;
-        }
+        :root{--bg:#f5f4f1;--card:#ffffff;--text:#333333;--light:#666666;--accent:#d97757;--ah:#c46347;--border:#e6e4df;--green:#4a9e6b;--red:#c0392b;}
         *{box-sizing:border-box;}
         body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:20px;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;}
         .container{background:var(--card);width:100%;max-width:440px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.05);overflow:hidden;}
         .header{padding:24px;text-align:center;border-bottom:1px solid var(--border);}
-        .header h1{margin:0;font-size:20px;font-weight:500;}
+        .header h1{margin:0;font-size:20px;font-weight:500;user-select:none;-webkit-user-select:none;cursor:default;}
         .nav{display:flex;border-bottom:1px solid var(--border);}
         .nav-btn{flex:1;padding:12px 6px;text-align:center;background:none;border:none;font-size:14px;color:var(--light);cursor:pointer;transition:all .2s;}
         .nav-btn.active{color:var(--accent);font-weight:bold;border-bottom:2px solid var(--accent);}
-        .nav-lock{flex:0;padding:12px 14px;font-size:15px;opacity:.3;}
-        .nav-lock:hover{opacity:.6;}
-        .nav-lock.active{opacity:1;border-bottom:2px solid var(--accent);}
         .content{padding:24px;}
         .section{display:none;}.section.active{display:block;}
         .form-group{margin-bottom:16px;}
@@ -35,17 +29,19 @@
         button.secondary:hover{background:#525252;}
         button.danger{width:100%;padding:12px;background:#b94040;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;margin-top:12px;transition:background .2s;}
         button.danger:hover{background:#8f2e2e;}
-        button:disabled{opacity:.7;cursor:not-allowed;}
+        button:disabled{opacity:.4;cursor:not-allowed;}
         .status-box{margin-top:24px;padding:16px;background:#fdfaf8;border:1px solid #f2e6e1;border-radius:8px;}
         .status-box p{margin:0 0 8px 0;font-size:14px;display:flex;justify-content:space-between;align-items:center;}
-        .refresh-link{color:var(--accent);font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:opacity .2s;}
+        .refresh-link{color:var(--accent);font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:opacity .2s;}
         .refresh-link:hover{opacity:.8;}
         .refresh-link.loading{opacity:.6;pointer-events:none;}
-        .refresh-link svg{margin-right:4px;}
+        .refresh-link.loading svg{animation:spin .8s linear infinite;}
+        .refresh-link svg{transition:transform .3s;}
+        @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
         .list-toggle{color:var(--accent);font-size:14px;cursor:pointer;text-decoration:underline;text-underline-offset:4px;}
         .name-list{display:none;margin-top:10px;font-size:14px;color:var(--light);line-height:1.6;}
         .name-list.show{display:block;}
-        .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;pointer-events:none;opacity:0;transition:opacity .3s;z-index:2000;}
+        .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;pointer-events:none;opacity:0;transition:opacity .3s;z-index:4000;}
         .radio-group,.checkbox-group{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;margin-top:4px;}
         .radio-group label,.checkbox-group label{display:inline-flex;align-items:center;font-size:14px;cursor:pointer;}
         .radio-group input,.checkbox-group input{width:auto;margin-right:6px;background:none;}
@@ -56,14 +52,14 @@
         .result-box p{margin:0 0 12px 0;font-size:15px;font-weight:500;white-space:pre-wrap;word-break:break-all;}
         .result-box p:last-child{margin-bottom:0;}
 
-        /* 提醒按钮区 */
+        /* 提醒按钮 */
         .remind-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
         .remind-title{font-size:13px;color:var(--light);margin:0 0 10px 0;}
         .remind-btns{display:flex;gap:8px;}
         .remind-btn{flex:1;padding:9px 4px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:6px;font-size:13px;cursor:pointer;transition:all .2s;width:auto;}
         .remind-btn:hover{background:var(--accent);color:#fff;}
 
-        /* 捎话区 */
+        /* 捎话 */
         .msg-wrap{margin-top:14px;}
         .msg-toggle{font-size:13px;color:var(--light);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted;}
         .msg-toggle:hover{color:var(--accent);}
@@ -74,7 +70,6 @@
         .msg-btn-send{background:var(--accent);color:#fff;transition:background .2s;}
         .msg-btn-send:hover{background:var(--ah);}
         .msg-btn-cancel{background:var(--border);color:var(--text);}
-        .msg-btn-cancel:hover{background:#d5d3ce;}
 
         /* 收件箱 */
         .inbox-wrap{margin-top:14px;}
@@ -83,7 +78,7 @@
         .inbox-icon{color:var(--light);display:flex;align-items:center;flex-shrink:0;}
         .inbox-label{font-size:14px;color:var(--text);flex:1;}
         .inbox-badge{background:var(--accent);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;min-width:20px;text-align:center;}
-        .inbox-chevron{color:var(--light);font-size:12px;transition:transform .2s;}
+        .inbox-chevron{color:var(--light);transition:transform .2s;}
         .inbox-chevron.open{transform:rotate(180deg);}
         .inbox-content{display:none;margin-top:8px;}
         .inbox-empty{font-size:13px;color:#bbb;text-align:center;padding:16px 0;}
@@ -100,13 +95,11 @@
         .reply-action-btns{display:flex;gap:6px;margin-top:6px;}
         .reply-action-btns button{flex:1;padding:7px;border:none;border-radius:5px;font-size:13px;cursor:pointer;width:auto;}
         .reply-btn-send{background:var(--accent);color:#fff;}
-        .reply-btn-send:hover{background:var(--ah);}
         .reply-btn-cancel{background:var(--border);color:var(--text);}
 
-        /* 收到啦 */
+        /* 收货记录 */
         .feedback-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
         .feedback-header span{font-size:14px;color:var(--light);}
-        .feedback-refresh{color:var(--accent);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
         .feedback-table{width:100%;border-collapse:collapse;font-size:13px;}
         .feedback-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--border);color:var(--light);font-weight:500;white-space:nowrap;}
         .feedback-table td{padding:10px 6px;border-bottom:1px solid var(--border);vertical-align:top;word-break:break-all;}
@@ -114,40 +107,57 @@
         .empty-cell{color:#bbb;font-style:italic;}
         .btn-fill{padding:4px 10px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;transition:all .2s;width:auto;}
         .btn-fill:hover{background:var(--accent);color:#fff;}
+        .btn-fill.modify{border-color:#888;color:#888;}
+        .btn-fill.modify:hover{background:#888;color:#fff;}
         .guess-correct{color:var(--green);font-weight:600;}
         .guess-wrong s{color:#bbb;}
         .guess-wrong .actual{color:var(--red);font-weight:600;margin-left:4px;}
 
-        /* 管理员 */
-        .admin-lock{text-align:center;padding:20px 0;}
-        .admin-lock-hint{font-size:13px;color:#bbb;margin-bottom:16px;}
-        .admin-lock-input{display:flex;gap:8px;}
-        .admin-lock-input input{flex:1;text-align:center;letter-spacing:4px;}
-        .admin-lock-input button{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:16px;width:auto;transition:background .2s;}
-        .admin-lock-input button:hover{background:var(--ah);}
-        .admin-panel{display:none;}
-        .admin-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
-        .admin-section-title{font-size:13px;color:var(--light);margin:0 0 12px 0;font-weight:500;}
-        .admin-note{font-size:12px;color:var(--light);margin-top:12px;line-height:1.6;}
-
-        /* 管理员查询 */
-        .query-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
-        .query-group-title{font-size:13px;color:var(--light);margin:0 0 8px 0;}
-        .query-check-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;padding:2px;}
+        /* 管理员下拉 */
+        .qs-drop{border:1px solid var(--border);border-radius:6px;font-size:14px;}
+        .qs-drop summary{padding:10px;cursor:pointer;list-style:none;color:var(--text);}
+        .qs-drop summary::-webkit-details-marker{display:none;}
+        .qs-drop .query-check-list{padding:8px 10px;border-top:1px solid var(--border);max-height:160px;overflow-y:auto;}
+        .qs-drop .select-all-link{display:block;padding:4px 10px 8px;}
+        .query-check-list{display:flex;flex-direction:column;gap:6px;}
         .query-check-list label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;}
         .query-check-list input{width:auto;margin:0;}
         .select-all-link{font-size:12px;color:var(--accent);cursor:pointer;text-decoration:underline;margin-top:4px;display:inline-block;}
-        .query-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px;}
-        .query-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--border);color:var(--light);font-weight:500;white-space:nowrap;}
-        .query-table td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;word-break:break-all;}
+        .query-table{width:100%;border-collapse:collapse;font-size:13px;}
+        .query-table th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--light);font-weight:500;white-space:nowrap;min-width:100px;}
+        .query-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;word-break:break-word;min-width:100px;}
         .query-table tr:last-child td{border-bottom:none;}
         .query-table .nm{font-weight:500;}
 
-.qs-drop{border:1px solid var(--border);border-radius:6px;font-size:14px;}
-.qs-drop summary{padding:10px;cursor:pointer;list-style:none;color:var(--text);}
-.qs-drop summary::-webkit-details-marker{display:none;}
-.qs-drop .query-check-list{padding:8px 10px;border-top:1px solid var(--border);max-height:160px;overflow-y:auto;}
-.qs-drop .select-all-link{display:block;padding:4px 10px 8px;}
+        /* 侧边抽屉 */
+        .drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:998;}
+        .drawer-overlay.show{display:block;}
+        .drawer{position:fixed;right:-320px;top:0;width:320px;height:100vh;background:var(--card);z-index:999;box-shadow:-4px 0 24px rgba(0,0,0,.12);transition:right .3s ease;overflow-y:auto;display:flex;flex-direction:column;}
+        .drawer.open{right:0;}
+        .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+        .drawer-title{font-size:14px;font-weight:500;color:var(--light);}
+        .drawer-close{background:none;border:none;cursor:pointer;color:var(--light);padding:4px;display:flex;align-items:center;width:auto;}
+        .drawer-close:hover{color:var(--text);}
+        .drawer-body{padding:20px;flex:1;}
+        .drawer-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+        .drawer-section-title{font-size:13px;color:var(--light);margin:0 0 12px 0;font-weight:500;}
+        .drawer-note{font-size:12px;color:var(--light);margin-top:12px;line-height:1.6;}
+
+        /* 浮动锁按钮 */
+        .float-lock{display:none;position:fixed;right:0;top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--border);border-right:none;border-radius:8px 0 0 8px;padding:12px 10px;cursor:pointer;box-shadow:-2px 0 12px rgba(0,0,0,.08);z-index:990;color:var(--light);transition:color .2s,background .2s;}
+        .float-lock:hover{background:#f5f4f1;color:var(--accent);}
+
+        .secret-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:3000;align-items:center;justify-content:center;}
+.secret-overlay.show{display:flex;}
+.secret-box{background:rgba(255,255,255,.96);border:none;border-radius:24px;padding:52px 44px;width:196px;text-align:center;position:relative;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.12),0 0 0 1px rgba(0,0,0,.04);}
+.secret-input{background:transparent;border:none;border-bottom:1.5px solid rgba(0,0,0,.1);color:#1a1a1a;width:100%;text-align:center;letter-spacing:12px;font-size:22px;padding:8px 0;outline:none;font-family:inherit;transition:border-color .2s;}
+.secret-input:focus{border-bottom-color:rgba(0,0,0,.25);}
+@keyframes secretShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.secret-input.shake{animation:secretShake .4s ease;}
+.check-anim{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:rgba(255,255,255,.96);border-radius:24px;}
+.check-anim.show{display:flex;}
+        @keyframes drawCircle{from{stroke-dashoffset:126;}to{stroke-dashoffset:0;}}
+        @keyframes drawCheck{from{stroke-dashoffset:50;}to{stroke-dashoffset:0;}}
 
         /* Modal */
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;}
@@ -162,17 +172,86 @@
         .modal-btn-confirm{background:var(--accent);color:#fff;transition:background .2s;}
         .modal-btn-confirm:hover{background:var(--ah);}
         .modal-btn-cancel{background:var(--border);color:var(--text);}
-        .modal-btn-cancel:hover{background:#d5d3ce;}
     </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
+<!-- 神秘弹窗 -->
+<div class="secret-overlay" id="secretOverlay" onclick="handleOverlayClick(event)">
+    <div class="secret-box" id="secretBox">
+        <input class="secret-input" type="password" id="secretKey" inputmode="numeric" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter')verifySecret()">
+        <div class="check-anim" id="checkAnim">
+            <svg width="72" height="72" viewBox="0 0 50 50">
+                <circle class="check-circle" cx="25" cy="25" r="20" fill="none" stroke="#4CAF50" stroke-width="2" stroke-dasharray="126" stroke-dashoffset="126"/>
+                <polyline class="check-mark" points="15,25 22,33 36,16" fill="none" stroke="#4CAF50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="50" stroke-dashoffset="50"/>
+            </svg>
+        </div>
+    </div>
+</div>
+
+<!-- 浮动锁按钮 -->
+<button class="float-lock" id="floatLock" onclick="toggleDrawer()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+</button>
+
+<!-- 抽屉遮罩 -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
+
+<!-- 管理员抽屉 -->
+<div class="drawer" id="adminDrawer">
+    <div class="drawer-header">
+        <span class="drawer-title">管理员操作区</span>
+        <button class="drawer-close" onclick="toggleDrawer()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    <div class="drawer-body">
+        <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
+        <button class="secondary" id="btn-reveal" onclick="submitReveal()">公布答案</button>
+        <button class="danger" id="btn-reset" onclick="submitReset()">重置表格（开启新一轮）</button>
+        <p class="drawer-note">分配完成后数据保留供查询；揭晓后收货记录页面将显示猜测结果；重置将清空全部数据含消息记录。</p>
+
+        <div class="drawer-section">
+            <p class="drawer-section-title">信息查询</p>
+            <div style="display:flex;gap:10px;margin-bottom:14px">
+                <div style="flex:1">
+                    <details class="qs-drop" id="nickDrop">
+                        <summary id="nickSummary">选择成员（0）</summary>
+                        <div class="query-check-list" id="nicknameChecks"></div>
+                        <span class="select-all-link" onclick="selectAll('nicknameChecks');updSummary()">全选/取消</span>
+                    </details>
+                </div>
+                <div style="flex:1">
+                    <details class="qs-drop" id="fieldDrop">
+                        <summary id="fieldSummary">查询字段（0）</summary>
+                        <div class="query-check-list" id="fieldChecks">
+                            <label><input type="checkbox" value="diet" onchange="updSummary()"> 忌口要求</label>
+                            <label><input type="checkbox" value="wishlist" onchange="updSummary()"> 小小心愿</label>
+                            <label><input type="checkbox" value="time" onchange="updSummary()"> 可点时间</label>
+                            <label><input type="checkbox" value="categories" onchange="updSummary()"> 接受种类</label>
+                            <label><input type="checkbox" value="remarks" onchange="updSummary()"> 品类备注</label>
+                        </div>
+                        <span class="select-all-link" onclick="selectAll('fieldChecks');updSummary()">全选/取消</span>
+                    </details>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button class="primary" id="btn-query-admin" onclick="adminQuery()" style="flex:1">查询</button>
+                <button id="btn-capture" onclick="captureResult()" style="padding:12px 14px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;display:none;width:auto">存图</button>
+            </div>
+            <div style="overflow-x:auto;margin-top:4px"><div id="adminQueryResult"></div></div>
+        </div>
+    </div>
+</div>
+
 <!-- 填写收到记录 Modal -->
 <div class="modal-overlay" id="feedbackModal">
     <div class="modal-box">
-        <p class="modal-title">填写收到记录</p>
+        <p class="modal-title" id="modal-title-text">填写收到记录</p>
         <p class="modal-subtitle" id="modal-name-hint">昵称：</p>
         <div class="modal-form-group">
             <label>验证密码（报名时设的4位密码）</label>
@@ -198,16 +277,17 @@
 </div>
 
 <div class="container">
-    <div class="header"><h1>神秘小盲盒</h1></div>
+    <div class="header">
+        <h1 id="mainTitle">神秘小盲盒</h1>
+    </div>
     <div class="nav">
         <button class="nav-btn active" onclick="switchTab('register',this)">我要报名</button>
         <button class="nav-btn" onclick="switchTab('query',this)">查询提醒</button>
-        <button class="nav-btn" onclick="switchTab('feedback',this)">收到啦 🎉</button>
-        <button class="nav-btn nav-lock" onclick="switchTab('admin',this)" title="管理">🔒</button>
+        <button class="nav-btn" onclick="switchTab('feedback',this)">收货记录</button>
     </div>
     <div class="content">
 
-        <!-- ── 报名 ── -->
+        <!-- 报名 -->
         <div id="register" class="section active">
             <div class="form-group"><label>你的昵称（用于名单公示）</label><input type="text" id="reg-name" placeholder="输入昵称"></div>
             <div class="form-group"><label>设置查询密码（4位数字）</label><input type="password" id="reg-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="设置4位数字密码"></div>
@@ -260,7 +340,7 @@
                 <textarea id="reg-diet" placeholder="输入忌口（如：不吃香菜等）" style="display:none;margin-top:6px" class="auto-grow"></textarea>
             </div>
             <div class="form-group">
-                <label>许愿栏 <span class="form-hint">※ 许愿时间！不许许愿太过具体的东西哦（指</span></label>
+                <label>许愿栏 <span class="form-hint">※ 不许许愿太过具体的东西哦（指</span></label>
                 <div class="radio-group">
                     <label><input type="radio" name="wish-choice" value="无" checked onclick="toggleInputDisplay('reg-wish-input',false)"> 无</label>
                     <label><input type="radio" name="wish-choice" value="有" onclick="toggleInputDisplay('reg-wish-input',true)"> 填写</label>
@@ -268,14 +348,14 @@
                 <textarea id="reg-wish-input" placeholder="写下你的盲盒小愿望吧" style="display:none;margin-top:6px" class="auto-grow"></textarea>
             </div>
             <div class="form-group">
-                <label>你的地址</label><span class="form-hint">※ 需要手机号 and 地址，但别填名字</span>
+                <label>你的地址 <span class="form-hint">※ 需要手机号 and 地址，但别填名字</span></label>
                 <textarea id="reg-address" placeholder="详细地址+联系方式（仅对方可见）" class="auto-grow"></textarea>
             </div>
             <button class="primary" id="btn-submit" onclick="submitRegister()">提交报名</button>
             <div class="status-box">
                 <p>
                     <span>当前报名人数：<strong id="user-count">0</strong> 人</span>
-                    <a class="refresh-link" onclick="triggerRefresh()">
+                    <a class="refresh-link" id="refreshLink" onclick="triggerRefresh()">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                         <span>刷新</span>
                     </a>
@@ -285,12 +365,11 @@
             </div>
         </div>
 
-        <!-- ── 查询提醒 ── -->
+        <!-- 查询提醒 -->
         <div id="query" class="section">
             <div class="form-group"><label>输入你的报名昵称</label><input type="text" id="query-name" placeholder="你报名时填的昵称"></div>
             <div class="form-group"><label>输入你的查询密码</label><input type="password" id="query-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="输入4位数字密码"></div>
             <button class="primary" id="btn-query" onclick="submitQuery()">查询我的盲盒任务</button>
-
             <div class="result-box" id="query-result">
                 <h3>你需要送往的地址：</h3><p id="target-address"></p>
                 <h3>对方的忌口要求：</h3><p id="target-diet"></p>
@@ -298,8 +377,6 @@
                 <h3>接受种类：</h3><p id="target-categories"></p>
                 <h3>品类备注：</h3><p id="target-remarks"></p>
                 <h3>对方的愿望：</h3><p id="target-wishlist"></p>
-
-                <!-- 三种提醒 -->
                 <div class="remind-section">
                     <p class="remind-title">发送提醒给对方</p>
                     <div class="remind-btns">
@@ -308,8 +385,6 @@
                         <button class="remind-btn" id="btn-remind3" onclick="submitRemind(3)">取货了</button>
                     </div>
                 </div>
-
-                <!-- 捎话 -->
                 <div class="msg-wrap">
                     <span class="msg-toggle" onclick="toggleMessage()">有话想说？给对方捎句话</span>
                     <div class="msg-area" id="msgArea">
@@ -320,15 +395,10 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- 收件箱 -->
                 <div class="inbox-wrap" id="inboxWrap" style="display:none">
                     <div class="inbox-bar" onclick="toggleInbox()">
                         <span class="inbox-icon">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <rect x="2" y="4" width="20" height="16" rx="2"/>
-                                <polyline points="2,9 12,15 22,9"/>
-                            </svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,9 12,15 22,9"/></svg>
                         </span>
                         <span class="inbox-label">收件箱</span>
                         <span class="inbox-badge" id="inboxBadge" style="display:none">0</span>
@@ -336,83 +406,28 @@
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
                         </span>
                     </div>
-                    <div class="inbox-content" id="inboxContent">
-                        <div id="msgList"></div>
-                    </div>
+                    <div class="inbox-content" id="inboxContent"><div id="msgList"></div></div>
                 </div>
             </div>
         </div>
 
-        <!-- ── 收到啦 ── -->
+        <!-- 收货记录 -->
         <div id="feedback" class="section">
             <div class="feedback-header">
                 <span id="feedback-status">加载中…</span>
-                <a class="feedback-refresh" onclick="loadFeedback()">
+                <a class="refresh-link" id="feedbackRefreshLink" onclick="triggerFeedbackRefresh()">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                    刷新
+                    <span>刷新</span>
                 </a>
             </div>
             <div id="feedback-table-wrap"><p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">加载中…</p></div>
-        </div>
-
-        <!-- ── 管理员 ── -->
-        <div id="admin" class="section">
-            <div class="admin-lock" id="admin-lock">
-                <p class="admin-lock-hint">请输入暗号</p>
-                <div class="admin-lock-input">
-                    <input type="password" id="admin-key" placeholder="••••••••" onkeydown="if(event.key==='Enter')verifyAdmin()">
-                    <button onclick="verifyAdmin()">→</button>
-                </div>
-            </div>
-            <div class="admin-panel" id="admin-panel">
-                <p style="font-size:13px;color:var(--light);margin:0 0 14px 0">管理员操作区 · 每步都有确认</p>
-                <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
-                <button class="secondary" id="btn-reveal" onclick="submitReveal()">公布答案 🎉</button>
-                <button class="danger" id="btn-reset" onclick="submitReset()">重置表格（开启新一轮）</button>
-                <p class="admin-note">分配完成后数据保留供查询；揭晓后"收到啦"页面将显示猜测结果；重置将清空全部数据含消息记录。</p>
-
-                <!-- 信息查询 -->
-                <div class="admin-section">
-                    <p class="admin-section-title">信息查询</p>
-                    <div style="display:flex;gap:10px;margin-bottom:14px">
-    <div style="flex:1">
-        <details class="qs-drop" id="nickDrop">
-            <summary id="nickSummary" onclick="void(0)">选择成员（0）</summary>
-            <div class="query-check-list" id="nicknameChecks"></div>
-            <span class="select-all-link" onclick="selectAll('nicknameChecks');updSummary()">全选/取消</span>
-        </details>
-    </div>
-    <div style="flex:1">
-        <details class="qs-drop" id="fieldDrop">
-            <summary id="fieldSummary" onclick="void(0)">查询字段（0）</summary>
-            <div class="query-check-list" id="fieldChecks">
-                <label><input type="checkbox" value="diet" onchange="updSummary()"> 忌口要求</label>
-                <label><input type="checkbox" value="wishlist" onchange="updSummary()"> 小小心愿</label>
-                <label><input type="checkbox" value="time" onchange="updSummary()"> 可点时间</label>
-                <label><input type="checkbox" value="categories" onchange="updSummary()"> 接受种类</label>
-                <label><input type="checkbox" value="remarks" onchange="updSummary()"> 品类备注</label>
-                <label><input type="checkbox" value="receivedTime" onchange="updSummary()"> 收到时间</label>
-                <label><input type="checkbox" value="receivedContent" onchange="updSummary()"> 收到内容</label>
-                <label><input type="checkbox" value="guess" onchange="updSummary()"> 猜测发送者</label>
-            </div>
-            <span class="select-all-link" onclick="selectAll('fieldChecks');updSummary()">全选/取消</span>
-        </details>
-    </div>
-</div>
-                    <div style="display:flex;gap:8px">
-    <button class="primary" id="btn-query-admin" onclick="adminQuery()" style="flex:1">查询</button>
-    <button id="btn-capture" onclick="captureResult()" style="padding:12px 14px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;display:none;width:auto">存图</button>
-</div>
-                    <div style="overflow-x:auto;margin-top:4px"><div id="adminQueryResult"></div></div>
-                </div>
-            </div>
         </div>
 
     </div>
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxcgqPn_26Iabs9QEwsciI3QyR3cPYNjvI2PrInFtNeaH0lQUnr3Wq0xh_gS8a9jrWeiQ/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwiwi-4cuNfdiEnTzwA6_r1jUzXLb5l4aJ2d0hzO5isA47z3-uu63QIJBOcaMOMJBvLuw/exec";
     let refreshTimer = null;
     let currentNicknameList = [];
     let modalTargetNickname = '';
@@ -420,11 +435,27 @@
     let inboxOpen = false;
     let currentQueryName = '';
     let currentQueryPwd = '';
+    let adminUnlocked = false;
+    let currentFeedbacks = [];
+    let pressTimer = null;
+
+    // ── 时间格式化 ──
+    function fmtTime(raw) {
+        if (!raw) return '';
+        if (/^\d{2}-\d{2} \d{2}:\d{2}$/.test(raw)) return raw;
+        const d = new Date(raw);
+        if (isNaN(d.getTime())) return raw;
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const day = String(d.getDate()).padStart(2,'0');
+        const h = String(d.getHours()).padStart(2,'0');
+        const min = String(d.getMinutes()).padStart(2,'0');
+        return m+'-'+day+' '+h+':'+min;
+    }
 
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.textContent = msg; t.style.opacity = '1';
-        setTimeout(() => { t.style.opacity = '0'; }, 3000);
+        setTimeout(() => { t.style.opacity='0'; }, 3000);
     }
 
     document.querySelectorAll('textarea.auto-grow').forEach(el => {
@@ -437,7 +468,7 @@
     function toggleInputDisplay(id, show) {
         const el = document.getElementById(id);
         el.style.display = show ? 'block' : 'none';
-        if (!show) { el.value = ''; if (el.classList.contains('auto-grow')) el.style.height = 'auto'; }
+        if (!show) { el.value=''; if (el.classList.contains('auto-grow')) el.style.height='auto'; }
     }
 
     function handleCategoryAny(cb) {
@@ -446,7 +477,7 @@
             document.getElementById('cate-remark').checked = false;
             toggleInputDisplay('cate-dropdown', false);
             toggleInputDisplay('reg-remarks-input', false);
-            document.querySelectorAll('input[name="food-cate"]').forEach(c => c.checked = false);
+            document.querySelectorAll('input[name="food-cate"]').forEach(c => c.checked=false);
         }
     }
 
@@ -469,14 +500,14 @@
 
     async function requestGas(data, btnId) {
         const btn = btnId ? document.getElementById(btnId) : null;
-        if (btn) { btn.disabled = true; btn.dataset.oldText = btn.innerText; btn.innerText = "处理中..."; }
+        if (btn) { btn.disabled=true; btn.dataset.oldText=btn.innerText; btn.innerText='处理中...'; }
         try {
             const res = await (await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(data) })).json();
-            if (btn) { btn.disabled = false; btn.innerText = btn.dataset.oldText; }
+            if (btn) { btn.disabled=false; btn.innerText=btn.dataset.oldText; }
             return res;
         } catch(err) {
-            if (btn) { btn.disabled = false; btn.innerText = btn.dataset.oldText; }
-            showToast("网络请求失败"); return { success: false, message: "网络异常" };
+            if (btn) { btn.disabled=false; btn.innerText=btn.dataset.oldText; }
+            showToast("网络请求失败"); return { success:false, message:"网络异常" };
         }
     }
 
@@ -486,33 +517,33 @@
         const email = document.getElementById('reg-email').value.trim();
         const addr = document.getElementById('reg-address').value.trim();
         if (!name||!pwd||!email||!addr) return showToast("昵称、密码、邮箱、地址均为必填项");
-        if (pwd.length !== 4 || isNaN(pwd)) return showToast("密码必须是4位数字");
+        if (pwd.length!==4||isNaN(pwd)) return showToast("密码必须是4位数字");
         const timeChoice = document.querySelector('input[name="time-choice"]:checked').value;
-        const time = timeChoice === '填写' ? document.getElementById('reg-time-input').value.trim() : "我都行！";
-        if (timeChoice === '填写' && !time) return showToast("请填写具体的时间范围");
+        const time = timeChoice==='填写' ? document.getElementById('reg-time-input').value.trim() : "我都行！";
+        if (timeChoice==='填写'&&!time) return showToast("请填写具体的时间范围");
         let categories = "无所谓";
         if (document.getElementById('cate-select').checked) {
-            const chosen = Array.from(document.querySelectorAll('input[name="food-cate"]:checked')).map(c => c.value);
+            const chosen = Array.from(document.querySelectorAll('input[name="food-cate"]:checked')).map(c=>c.value);
             if (!chosen.length) return showToast("请选择具体接受的种类");
             categories = chosen.join('、');
         }
         const remarks = document.getElementById('cate-remark').checked ? document.getElementById('reg-remarks-input').value.trim() : "无";
-        if (document.getElementById('cate-remark').checked && !remarks) return showToast("请填写品类备注");
-        const diet = document.querySelector('input[name="diet-choice"]:checked').value === '有' ? document.getElementById('reg-diet').value.trim() : "无";
-        if (document.querySelector('input[name="diet-choice"]:checked').value === '有' && !diet) return showToast("请填写忌口要求");
-        const wishlist = document.querySelector('input[name="wish-choice"]:checked').value === '有' ? document.getElementById('reg-wish-input').value.trim() : "无";
-        if (document.querySelector('input[name="wish-choice"]:checked').value === '有' && !wishlist) return showToast("请写下你的愿望");
+        if (document.getElementById('cate-remark').checked&&!remarks) return showToast("请填写品类备注");
+        const diet = document.querySelector('input[name="diet-choice"]:checked').value==='有' ? document.getElementById('reg-diet').value.trim() : "无";
+        if (document.querySelector('input[name="diet-choice"]:checked').value==='有'&&!diet) return showToast("请填写忌口要求");
+        const wishlist = document.querySelector('input[name="wish-choice"]:checked').value==='有' ? document.getElementById('reg-wish-input').value.trim() : "无";
+        if (document.querySelector('input[name="wish-choice"]:checked').value==='有'&&!wishlist) return showToast("请写下你的愿望");
         const res = await requestGas({ action:'register', nickname:name, password:pwd, email, address:addr, time, categories, remarks, diet, wishlist }, 'btn-submit');
         if (res.success) {
             showToast("报名成功！");
-            ['reg-name','reg-pwd','reg-email','reg-address','reg-time-input','reg-remarks-input','reg-diet','reg-wish-input'].forEach(id => { document.getElementById(id).value = ''; });
-            document.getElementById('cate-any').checked = true;
-            ['cate-select','cate-remark'].forEach(id => document.getElementById(id).checked = false);
-            document.querySelectorAll('input[name="food-cate"]').forEach(c => c.checked = false);
-            document.querySelectorAll('input[name="time-choice"]')[0].checked = true;
-            document.querySelectorAll('input[name="diet-choice"]')[0].checked = true;
-            document.querySelectorAll('input[name="wish-choice"]')[0].checked = true;
-            ['reg-time-input','cate-dropdown','reg-remarks-input','reg-diet','reg-wish-input'].forEach(id => toggleInputDisplay(id, false));
+            ['reg-name','reg-pwd','reg-email','reg-address','reg-time-input','reg-remarks-input','reg-diet','reg-wish-input'].forEach(id => { document.getElementById(id).value=''; });
+            document.getElementById('cate-any').checked=true;
+            ['cate-select','cate-remark'].forEach(id => document.getElementById(id).checked=false);
+            document.querySelectorAll('input[name="food-cate"]').forEach(c=>c.checked=false);
+            document.querySelectorAll('input[name="time-choice"]')[0].checked=true;
+            document.querySelectorAll('input[name="diet-choice"]')[0].checked=true;
+            document.querySelectorAll('input[name="wish-choice"]')[0].checked=true;
+            ['reg-time-input','cate-dropdown','reg-remarks-input','reg-diet','reg-wish-input'].forEach(id=>toggleInputDisplay(id,false));
             loadList();
         } else { showToast(res.message); }
     }
@@ -520,19 +551,28 @@
     async function loadList() {
         const res = await requestGas({ action:'getList' }, null);
         if (res.success) {
-            currentNicknameList = res.list || [];
+            currentNicknameList = res.list||[];
             document.getElementById('user-count').innerText = res.count;
-            document.getElementById('user-list').innerText = res.count === 0 ? '（暂无数据）' : res.list.join('，');
+            document.getElementById('user-list').innerText = res.count===0 ? '（暂无数据）' : res.list.join('，');
         }
     }
 
     async function triggerRefresh() {
-        const link = document.querySelector('.refresh-link');
+        const link = document.getElementById('refreshLink');
         const text = link.querySelector('span');
         if (link.classList.contains('loading')) return;
-        link.classList.add('loading'); text.innerText = "查询中...";
+        link.classList.add('loading'); text.innerText='查询中...';
         await loadList();
-        setTimeout(() => { link.classList.remove('loading'); text.innerText = "刷新"; showToast("名单已同步最新状态"); }, 300);
+        setTimeout(() => { link.classList.remove('loading'); text.innerText='刷新'; showToast("名单已同步最新状态"); }, 300);
+    }
+
+    async function triggerFeedbackRefresh() {
+        const link = document.getElementById('feedbackRefreshLink');
+        const text = link.querySelector('span');
+        if (link.classList.contains('loading')) return;
+        link.classList.add('loading'); text.innerText='刷新中...';
+        await loadFeedback();
+        setTimeout(() => { link.classList.remove('loading'); text.innerText='刷新'; }, 300);
     }
 
     async function submitQuery() {
@@ -542,35 +582,33 @@
         const res = await requestGas({ action:'query', nickname:name, password:pwd }, 'btn-query');
         const box = document.getElementById('query-result');
         if (res.success) {
-            currentQueryName = name; currentQueryPwd = pwd;
+            currentQueryName=name; currentQueryPwd=pwd;
             document.getElementById('target-address').innerText = res.address;
             document.getElementById('target-diet').innerText = res.diet;
             document.getElementById('target-time').innerText = res.time;
             document.getElementById('target-categories').innerText = res.categories;
             document.getElementById('target-remarks').innerText = res.remarks;
             document.getElementById('target-wishlist').innerText = res.wishlist;
-            box.style.display = 'block';
+            box.style.display='block';
             loadInbox(name, pwd);
-        } else { box.style.display = 'none'; showToast(res.message); }
+        } else { box.style.display='none'; showToast(res.message); }
     }
 
-    // ── 三种提醒 ──
     async function submitRemind(type) {
         const name = document.getElementById('query-name').value.trim();
         const pwd = document.getElementById('query-pwd').value.trim();
-        const labels = { 1:'准备点单', 2:'已下单', 3:'骑手取货' };
-        if (!confirm("确定发送「" + labels[type] + "」提醒给对方吗？（匿名发送）")) return;
+        const labels = {1:'准备点单',2:'已下单',3:'骑手取货'};
+        if (!confirm("确定发送「"+labels[type]+"」提醒给对方吗？（匿名发送）")) return;
         const res = await requestGas({ action:'remind', nickname:name, password:pwd, remindType:type }, 'btn-remind'+type);
         showToast(res.message);
     }
 
-    // ── 捎话 ──
     function toggleMessage() {
         const area = document.getElementById('msgArea');
-        const showing = area.style.display === 'block';
+        const showing = area.style.display==='block';
         area.style.display = showing ? 'none' : 'block';
         if (!showing) document.getElementById('msgContent').focus();
-        else document.getElementById('msgContent').value = '';
+        else document.getElementById('msgContent').value='';
     }
 
     async function sendMessage() {
@@ -578,99 +616,104 @@
         if (!content) return showToast("请输入内容");
         const res = await requestGas({ action:'sendMessage', nickname:currentQueryName, password:currentQueryPwd, content }, 'btn-send-msg');
         showToast(res.message);
-        if (res.success) { document.getElementById('msgContent').value = ''; document.getElementById('msgArea').style.display = 'none'; }
+        if (res.success) { document.getElementById('msgContent').value=''; document.getElementById('msgArea').style.display='none'; }
     }
 
-    // ── 收件箱 ──
     async function loadInbox(name, pwd) {
         const res = await requestGas({ action:'getInbox', nickname:name, password:pwd }, null);
         if (!res.success) return;
-        cachedMessages = res.messages || [];
-        const unread = cachedMessages.filter(m => !m.isRead).length;
-        const wrap = document.getElementById('inboxWrap');
-        wrap.style.display = 'block';
+        cachedMessages = res.messages||[];
+        const unread = cachedMessages.filter(m=>!m.isRead).length;
+        document.getElementById('inboxWrap').style.display='block';
         const badge = document.getElementById('inboxBadge');
-        if (unread > 0) { badge.style.display = 'inline-block'; badge.textContent = unread; }
-        else { badge.style.display = 'none'; }
+        if (unread>0) { badge.style.display='inline-block'; badge.textContent=unread; }
+        else { badge.style.display='none'; }
     }
 
     function toggleInbox() {
         inboxOpen = !inboxOpen;
-        const content = document.getElementById('inboxContent');
-        const chevron = document.getElementById('inboxChevron');
-        content.style.display = inboxOpen ? 'block' : 'none';
-        chevron.classList.toggle('open', inboxOpen);
+        document.getElementById('inboxContent').style.display = inboxOpen ? 'block' : 'none';
+        document.getElementById('inboxChevron').classList.toggle('open', inboxOpen);
         if (inboxOpen) {
             renderMessages();
             requestGas({ action:'markRead', nickname:currentQueryName, password:currentQueryPwd }, null);
-            document.getElementById('inboxBadge').style.display = 'none';
+            document.getElementById('inboxBadge').style.display='none';
         }
     }
 
     function renderMessages() {
         const list = document.getElementById('msgList');
-        if (!cachedMessages.length) { list.innerHTML = '<p class="inbox-empty">暂无消息</p>'; return; }
+        if (!cachedMessages.length) { list.innerHTML='<p class="inbox-empty">暂无消息</p>'; return; }
         list.innerHTML = cachedMessages.map(m => {
             const tag = m.isReply ? '回话' : '新消息';
             const canReply = !m.isReply;
             return '<div class="msg-item">'
-                + '<div class="msg-item-header">'
-                + '<span class="msg-item-tag">' + tag + '</span>'
-                + '<span class="msg-item-time">' + m.time + '</span>'
-                + '</div>'
-                + '<div class="msg-item-content">' + escHtml(m.content) + '</div>'
-                + (canReply ? '<span class="reply-toggle" onclick="toggleReply(\'' + m.msgId + '\')">回话</span>'
-                    + '<div class="reply-area" id="reply-' + m.msgId + '">'
+                + '<div class="msg-item-header"><span class="msg-item-tag">'+tag+'</span><span class="msg-item-time">'+fmtTime(m.time)+'</span></div>'
+                + '<div class="msg-item-content">'+escHtml(m.content)+'</div>'
+                + (canReply ? '<span class="reply-toggle" onclick="toggleReply(\''+m.msgId+'\')">回话</span>'
+                    + '<div class="reply-area" id="reply-'+m.msgId+'">'
                     + '<textarea placeholder="写下回话内容…"></textarea>'
                     + '<div class="reply-action-btns">'
-                    + '<button class="reply-btn-cancel" onclick="toggleReply(\'' + m.msgId + '\')">取消</button>'
-                    + '<button class="reply-btn-send" onclick="sendReply(\'' + m.msgId + '\')">发送</button>'
+                    + '<button class="reply-btn-cancel" onclick="toggleReply(\''+m.msgId+'\')">取消</button>'
+                    + '<button class="reply-btn-send" onclick="sendReply(\''+m.msgId+'\')">发送</button>'
                     + '</div></div>' : '')
                 + '</div>';
         }).join('');
     }
 
     function toggleReply(msgId) {
-        const area = document.getElementById('reply-' + msgId);
-        const showing = area.style.display === 'block';
+        const area = document.getElementById('reply-'+msgId);
+        const showing = area.style.display==='block';
         area.style.display = showing ? 'none' : 'block';
         if (!showing) area.querySelector('textarea').focus();
     }
 
     async function sendReply(msgId) {
-        const area = document.getElementById('reply-' + msgId);
+        const area = document.getElementById('reply-'+msgId);
         const content = area.querySelector('textarea').value.trim();
         if (!content) return showToast("请输入回话内容");
         const res = await requestGas({ action:'replyMessage', nickname:currentQueryName, password:currentQueryPwd, msgId, content }, null);
         showToast(res.message);
-        if (res.success) { area.style.display = 'none'; area.querySelector('textarea').value = ''; }
+        if (res.success) { area.style.display='none'; area.querySelector('textarea').value=''; }
     }
 
     function escHtml(str) {
         return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    // ── 收到啦 ──
+    // ── 收货记录 ──
     async function loadFeedback() {
         const res = await requestGas({ action:'getFeedback' }, null);
         if (!res.success) { showToast("加载失败，请重试"); return; }
-        const feedbacks = res.feedbacks || [];
+        currentFeedbacks = res.feedbacks||[];
         const revealed = res.revealed;
-        document.getElementById('feedback-status').textContent = revealed ? '答案已揭晓 🎉' : '实时动态（每20秒自动刷新）';
+        document.getElementById('feedback-status').textContent = revealed ? '答案已揭晓' : '实时动态（每20秒自动刷新）';
+
+        // 揭晓后锁住公布答案按钮
+        if (revealed) {
+            const btn = document.getElementById('btn-reveal');
+            if (btn) { btn.disabled=true; }
+            sessionStorage.setItem('revealDone','1');
+        }
+
         const wrap = document.getElementById('feedback-table-wrap');
-        if (!feedbacks.length) { wrap.innerHTML = '<p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">还没有人收到哦，等等吧～</p>'; return; }
-        let html = '<table class="feedback-table"><thead><tr><th>昵称</th><th>收到时间</th><th>收到了什么</th><th>猜是谁</th><th></th></tr></thead><tbody>';
-        feedbacks.forEach(f => {
+        if (!currentFeedbacks.length) { wrap.innerHTML='<p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">还没有人收到哦，等等吧～</p>'; return; }
+        let html = '<table class="feedback-table"><thead><tr><th>昵称</th><th>收到时间</th><th>收到了什么</th><th>猜是谁</th>'+(revealed?'':'<th></th>')+'</tr></thead><tbody>';
+        currentFeedbacks.forEach(f => {
             let guessCell = '';
             if (revealed && f.revealResult) {
-                if (f.revealResult === '✓') guessCell = '<span class="guess-correct">' + (f.guess||'—') + ' ✓</span>';
-                else guessCell = '<span class="guess-wrong"><s>' + (f.guess||'未猜') + '</s><span class="actual">→ ' + f.revealResult + '</span></span>';
-            } else { guessCell = f.guess || '<span class="empty-cell">未填</span>'; }
-            html += '<tr><td><strong>' + f.nickname + '</strong></td>'
-                + '<td>' + (f.receivedTime||'<span class="empty-cell">—</span>') + '</td>'
-                + '<td>' + (f.receivedContent||'<span class="empty-cell">—</span>') + '</td>'
-                + '<td>' + guessCell + '</td>'
-                + '<td><button class="btn-fill" onclick="openModal(\'' + f.nickname + '\')">填写</button></td></tr>';
+                if (f.revealResult==='✓') guessCell='<span class="guess-correct">'+(f.guess||'—')+' ✓</span>';
+                else guessCell='<span class="guess-wrong"><s>'+(f.guess||'未猜')+'</s><span class="actual">→ '+f.revealResult+'</span></span>';
+            } else { guessCell = f.guess||'<span class="empty-cell">未填</span>'; }
+            const hasData = f.receivedTime||f.receivedContent||f.guess;
+            const btnLabel = hasData ? '修改' : '填写';
+            const btnClass = hasData ? 'btn-fill modify' : 'btn-fill';
+            html += '<tr><td><strong>'+f.nickname+'</strong></td>'
+                + '<td>'+(f.receivedTime||'<span class="empty-cell">—</span>')+'</td>'
+                + '<td>'+(f.receivedContent||'<span class="empty-cell">—</span>')+'</td>'
+                + '<td>'+guessCell+'</td>'
+                + (revealed ? '' : '<td><button class="'+btnClass+'" onclick="openModal(\''+f.nickname+'\')">'+btnLabel+'</button></td>')
+                + '</tr>';
         });
         html += '</tbody></table>';
         wrap.innerHTML = html;
@@ -678,13 +721,25 @@
 
     function openModal(nickname) {
         modalTargetNickname = nickname;
-        document.getElementById('modal-name-hint').textContent = '昵称：' + nickname;
-        ['modal-pwd','modal-time','modal-content'].forEach(id => document.getElementById(id).value = '');
+        const existing = currentFeedbacks.find(f => f.nickname===nickname);
+        const hasData = existing && (existing.receivedTime||existing.receivedContent||existing.guess);
+        document.getElementById('modal-title-text').textContent = hasData ? '修改收到记录' : '填写收到记录';
+        document.getElementById('modal-name-hint').textContent = '昵称：'+nickname;
+        document.getElementById('modal-pwd').value='';
+        // 预填上次数据
+        if (existing) {
+            document.getElementById('modal-time').value = existing.receivedTime||'';
+            document.getElementById('modal-content').value = existing.receivedContent||'';
+        } else {
+            document.getElementById('modal-time').value='';
+            document.getElementById('modal-content').value='';
+        }
         const sel = document.getElementById('modal-guess');
-        sel.innerHTML = '<option value="">-- 我猜是…… --</option>';
+        sel.innerHTML='<option value="">-- 我猜是…… --</option>';
         currentNicknameList.forEach(n => {
-            if (n !== nickname) { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); }
+            if (n!==nickname) { const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); }
         });
+        if (existing && existing.guess) sel.value=existing.guess;
         document.getElementById('feedbackModal').classList.add('show');
     }
 
@@ -703,90 +758,162 @@
         if (res.success) { closeModal(); loadFeedback(); }
     }
 
-    // ── 管理员 ──
-    function verifyAdmin() {
-        if (document.getElementById('admin-key').value === '08270430') {
-            document.getElementById('admin-lock').style.display = 'none';
-            document.getElementById('admin-panel').style.display = 'block';
-            buildNicknameChecks();
-        } else { showToast("暗号不对"); document.getElementById('admin-key').value = ''; }
+    // ── 神秘弹窗 ──
+    function handleOverlayClick(e) {
+        if (e.target===document.getElementById('secretOverlay')) closeSecret();
     }
 
+    function closeSecret() {
+        document.getElementById('secretOverlay').classList.remove('show');
+        document.getElementById('secretKey').value='';
+        document.getElementById('checkAnim').classList.remove('show');
+    }
+
+    function verifySecret() {
+        const key = document.getElementById('secretKey').value;
+        if (key==='08270430') {
+            // 播放✓动画
+            const anim = document.getElementById('checkAnim');
+            anim.classList.add('show');
+            // 重新触发CSS动画
+            const circle = anim.querySelector('.check-circle');
+            const mark = anim.querySelector('.check-mark');
+            circle.style.animation='none'; mark.style.animation='none';
+            circle.offsetHeight;
+            circle.style.animation='drawCircle .5s ease forwards';
+            mark.style.animation='drawCheck .35s ease .45s forwards';
+
+            setTimeout(() => {
+                closeSecret();
+                adminUnlocked = true;
+                document.getElementById('floatLock').style.display='flex';
+                buildNicknameChecks();
+                // 恢复按钮状态
+                if (sessionStorage.getItem('assignDone')==='1') {
+                    const b=document.getElementById('btn-assign'); if(b) b.disabled=true;
+                }
+                if (sessionStorage.getItem('revealDone')==='1') {
+                    const b=document.getElementById('btn-reveal'); if(b) b.disabled=true;
+                }
+            }, 1100);
+        } else {
+            const input = document.getElementById('secretKey');
+            input.classList.add('shake');
+            input.value='';
+            setTimeout(()=>input.classList.remove('shake'), 400);
+        }
+    }
+
+    document.getElementById('secretKey').addEventListener('keydown', function(e) {
+        if (e.key==='Enter') verifySecret();
+        else if (e.key==='Escape') closeSecret();
+    });
+
+    // ── 长按标题 ──
+    const titleEl = document.getElementById('mainTitle');
+    function startPress() {
+        pressTimer = setTimeout(() => {
+            document.getElementById('secretOverlay').classList.add('show');
+            setTimeout(()=>document.getElementById('secretKey').focus(), 100);
+        }, 1500);
+    }
+    function endPress() { clearTimeout(pressTimer); }
+    titleEl.addEventListener('touchstart', startPress, {passive:true});
+    titleEl.addEventListener('touchend', endPress);
+    titleEl.addEventListener('touchcancel', endPress);
+    titleEl.addEventListener('mousedown', startPress);
+    titleEl.addEventListener('mouseup', endPress);
+    titleEl.addEventListener('mouseleave', endPress);
+    titleEl.addEventListener('contextmenu', e => e.preventDefault());
+
+    // ── 抽屉 ──
+    function toggleDrawer() {
+        const drawer = document.getElementById('adminDrawer');
+        const overlay = document.getElementById('drawerOverlay');
+        const isOpen = drawer.classList.contains('open');
+        drawer.classList.toggle('open', !isOpen);
+        overlay.classList.toggle('show', !isOpen);
+    }
+
+    // ── 管理员操作 ──
     function buildNicknameChecks() {
-    const wrap = document.getElementById('nicknameChecks');
-    wrap.innerHTML = currentNicknameList.map(n =>
-        '<label><input type="checkbox" value="' + n + '" onchange="updSummary()"> ' + n + '</label>'
-    ).join('');
-    updSummary(); // 加这行
-}
+        const wrap = document.getElementById('nicknameChecks');
+        wrap.innerHTML = currentNicknameList.map(n =>
+            '<label><input type="checkbox" value="'+n+'" onchange="updSummary()"> '+n+'</label>'
+        ).join('');
+        updSummary();
+    }
 
     function selectAll(containerId) {
-    const cbs = document.querySelectorAll('#' + containerId + ' input[type="checkbox"]');
-    const allChecked = Array.from(cbs).every(cb => cb.checked);
-    cbs.forEach(cb => cb.checked = !allChecked);
-}
+        const cbs = document.querySelectorAll('#'+containerId+' input[type="checkbox"]');
+        const allChecked = Array.from(cbs).every(cb=>cb.checked);
+        cbs.forEach(cb=>cb.checked=!allChecked);
+    }
 
-function updSummary() {
-    const nc = document.querySelectorAll('#nicknameChecks input:checked').length;
-    const nt = document.querySelectorAll('#nicknameChecks input').length;
-    const fc = document.querySelectorAll('#fieldChecks input:checked').length;
-    const ft = document.querySelectorAll('#fieldChecks input').length;
-    if(nt>0) document.getElementById('nickSummary').textContent = '选择成员（'+nc+'/'+nt+'）';
-    document.getElementById('fieldSummary').textContent = '查询字段（'+fc+'/'+ft+'）';
-}
+    function updSummary() {
+        const nc = document.querySelectorAll('#nicknameChecks input:checked').length;
+        const nt = document.querySelectorAll('#nicknameChecks input').length;
+        const fc = document.querySelectorAll('#fieldChecks input:checked').length;
+        const ft = document.querySelectorAll('#fieldChecks input').length;
+        if (nt>0) document.getElementById('nickSummary').textContent='选择成员（'+nc+'/'+nt+'）';
+        document.getElementById('fieldSummary').textContent='查询字段（'+fc+'/'+ft+'）';
+    }
 
     async function adminQuery() {
-        const nicknames = Array.from(document.querySelectorAll('#nicknameChecks input:checked')).map(cb => cb.value);
-        const fields = Array.from(document.querySelectorAll('#fieldChecks input:checked')).map(cb => cb.value);
+        const nicknames = Array.from(document.querySelectorAll('#nicknameChecks input:checked')).map(cb=>cb.value);
+        const fields = Array.from(document.querySelectorAll('#fieldChecks input:checked')).map(cb=>cb.value);
         if (!nicknames.length) return showToast("请至少选择一个成员");
         if (!fields.length) return showToast("请至少选择一个字段");
         const res = await requestGas({ action:'getDetails', password:'08270430', nicknames, fields }, 'btn-query-admin');
         if (!res.success) { showToast(res.message); return; }
         const wrap = document.getElementById('adminQueryResult');
-        if (!res.rows.length) { wrap.innerHTML = '<p style="font-size:13px;color:#bbb;margin-top:12px">没有找到数据</p>'; return; }
-        let html = '<table class="query-table" style="margin-top:14px"><thead><tr><th>昵称</th>';
-        res.fields.forEach(f => { html += '<th>' + (res.labels[f]||f) + '</th>'; });
-        html += '</tr></thead><tbody>';
-        res.rows.forEach(row => {
-            html += '<tr><td class="nm">' + row.nickname + '</td>';
-            res.fields.forEach(f => { html += '<td>' + (row[f]||'—') + '</td>'; });
-            html += '</tr>';
+        if (!res.rows.length) { wrap.innerHTML='<p style="font-size:13px;color:#bbb;margin-top:12px">没有找到数据</p>'; return; }
+        let html='<table class="query-table" style="margin-top:14px"><thead><tr><th>昵称</th>';
+        res.fields.forEach(f=>{html+='<th>'+(res.labels[f]||f)+'</th>';});
+        html+='</tr></thead><tbody>';
+        res.rows.forEach(row=>{
+            html+='<tr><td class="nm">'+row.nickname+'</td>';
+            res.fields.forEach(f=>{html+='<td>'+(row[f]||'—')+'</td>';});
+            html+='</tr>';
         });
-        html += '</tbody></table>';
-        wrap.innerHTML = html;
-document.getElementById('btn-capture').style.display = 'block';
+        html+='</tbody></table>';
+        wrap.innerHTML=html;
+        document.getElementById('btn-capture').style.display='block';
+    }
+
+    async function captureResult() {
+        const el = document.getElementById('adminQueryResult');
+        if (!el.innerHTML) return;
+        const table = el.querySelector('table');
+        if (!table) return;
+        const canvas = await html2canvas(table, { backgroundColor:'#ffffff', scale:2, scrollX:0, scrollY:0, width:table.scrollWidth, height:table.scrollHeight });
+        const a = document.createElement('a');
+        a.download='查询结果.png';
+        a.href=canvas.toDataURL();
+        a.click();
     }
 
     async function submitAssign() {
         if (!confirm("确认截止报名并开始随机分配吗？分配后无法撤销。")) return;
         const res = await requestGas({ action:'assign', password:'08270430' }, 'btn-assign');
-        showToast(res.message); if (res.success) loadList();
+        showToast(res.message);
+        if (res.success) {
+            document.getElementById('btn-assign').disabled=true;
+            sessionStorage.setItem('assignDone','1');
+            loadList();
+        }
     }
 
     async function submitReveal() {
         if (!confirm("确认现在公布答案吗？揭晓后所有人都能看到谁猜对了。")) return;
         const res = await requestGas({ action:'reveal', password:'08270430' }, 'btn-reveal');
-        showToast(res.message); if (res.success) loadFeedback();
+        showToast(res.message);
+        if (res.success) {
+            document.getElementById('btn-reveal').disabled=true;
+            sessionStorage.setItem('revealDone','1');
+            loadFeedback();
+        }
     }
-
-async function captureResult() {
-    const el = document.getElementById('adminQueryResult');
-    if (!el.innerHTML) return;
-    const table = el.querySelector('table');
-    if (!table) return;
-    const canvas = await html2canvas(table, {
-        backgroundColor:'#ffffff',
-        scale:2,
-        scrollX:0,
-        scrollY:0,
-        width: table.scrollWidth,
-        height: table.scrollHeight
-    });
-    const a = document.createElement('a');
-    a.download = '查询结果.png';
-    a.href = canvas.toDataURL();
-    a.click();
-}
 
     async function submitReset() {
         if (!confirm("确认清空全部数据并开启新一轮吗？\n\n此操作完全不可逆！")) return;
@@ -794,10 +921,12 @@ async function captureResult() {
         const res = await requestGas({ action:'reset', password:'08270430' }, 'btn-reset');
         showToast(res.message);
         if (res.success) {
-            document.getElementById('query-result').style.display = 'none';
-            document.getElementById('admin-lock').style.display = 'block';
-            document.getElementById('admin-panel').style.display = 'none';
-            document.getElementById('admin-key').value = '';
+            sessionStorage.removeItem('assignDone');
+            sessionStorage.removeItem('revealDone');
+            ['btn-assign','btn-reveal'].forEach(id=>{
+                const b=document.getElementById(id); if(b) b.disabled=false;
+            });
+            document.getElementById('query-result').style.display='none';
             loadList();
         }
     }
