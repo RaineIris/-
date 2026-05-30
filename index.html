@@ -143,6 +143,12 @@
         .query-table tr:last-child td{border-bottom:none;}
         .query-table .nm{font-weight:500;}
 
+.qs-drop{border:1px solid var(--border);border-radius:6px;font-size:14px;}
+.qs-drop summary{padding:10px;cursor:pointer;list-style:none;color:var(--text);}
+.qs-drop summary::-webkit-details-marker{display:none;}
+.qs-drop .query-check-list{padding:8px 10px;border-top:1px solid var(--border);max-height:160px;overflow-y:auto;}
+.qs-drop .select-all-link{display:block;padding:4px 10px 8px;}
+
         /* Modal */
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;}
         .modal-overlay.show{display:flex;}
@@ -158,6 +164,7 @@
         .modal-btn-cancel{background:var(--border);color:var(--text);}
         .modal-btn-cancel:hover{background:#d5d3ce;}
     </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="toast" id="toast"></div>
@@ -367,29 +374,36 @@
                 <!-- 信息查询 -->
                 <div class="admin-section">
                     <p class="admin-section-title">信息查询</p>
-                    <div class="query-grid">
-                        <div>
-                            <p class="query-group-title">选择成员</p>
-                            <div class="query-check-list" id="nicknameChecks"></div>
-                            <span class="select-all-link" onclick="selectAll('nicknameChecks')">全选</span>
-                        </div>
-                        <div>
-                            <p class="query-group-title">查询字段</p>
-                            <div class="query-check-list" id="fieldChecks">
-                                <label><input type="checkbox" value="diet"> 忌口要求</label>
-                                <label><input type="checkbox" value="wishlist"> 小小心愿</label>
-                                <label><input type="checkbox" value="time"> 可点时间</label>
-                                <label><input type="checkbox" value="categories"> 接受种类</label>
-                                <label><input type="checkbox" value="remarks"> 品类备注</label>
-                                <label><input type="checkbox" value="receivedTime"> 收到时间</label>
-                                <label><input type="checkbox" value="receivedContent"> 收到内容</label>
-                                <label><input type="checkbox" value="guess"> 猜测发送者</label>
-                            </div>
-                            <span class="select-all-link" onclick="selectAll('fieldChecks')">全选</span>
-                        </div>
-                    </div>
-                    <button class="primary" id="btn-query-admin" onclick="adminQuery()">查询</button>
-                    <div id="adminQueryResult"></div>
+                    <div style="display:flex;gap:10px;margin-bottom:14px">
+    <div style="flex:1">
+        <details class="qs-drop" id="nickDrop">
+            <summary id="nickSummary" onclick="void(0)">选择成员（0）</summary>
+            <div class="query-check-list" id="nicknameChecks"></div>
+            <span class="select-all-link" onclick="selectAll('nicknameChecks');updSummary()">全选/取消</span>
+        </details>
+    </div>
+    <div style="flex:1">
+        <details class="qs-drop" id="fieldDrop">
+            <summary id="fieldSummary" onclick="void(0)">查询字段（0）</summary>
+            <div class="query-check-list" id="fieldChecks">
+                <label><input type="checkbox" value="diet" onchange="updSummary()"> 忌口要求</label>
+                <label><input type="checkbox" value="wishlist" onchange="updSummary()"> 小小心愿</label>
+                <label><input type="checkbox" value="time" onchange="updSummary()"> 可点时间</label>
+                <label><input type="checkbox" value="categories" onchange="updSummary()"> 接受种类</label>
+                <label><input type="checkbox" value="remarks" onchange="updSummary()"> 品类备注</label>
+                <label><input type="checkbox" value="receivedTime" onchange="updSummary()"> 收到时间</label>
+                <label><input type="checkbox" value="receivedContent" onchange="updSummary()"> 收到内容</label>
+                <label><input type="checkbox" value="guess" onchange="updSummary()"> 猜测发送者</label>
+            </div>
+            <span class="select-all-link" onclick="selectAll('fieldChecks');updSummary()">全选/取消</span>
+        </details>
+    </div>
+</div>
+                    <div style="display:flex;gap:8px">
+    <button class="primary" id="btn-query-admin" onclick="adminQuery()" style="flex:1">查询</button>
+    <button id="btn-capture" onclick="captureResult()" style="padding:12px 14px;background:#555;color:#fff;border:none;border-radius:6px;cursor:pointer;display:none;width:auto">存图</button>
+</div>
+                    <div style="overflow-x:auto;margin-top:4px"><div id="adminQueryResult"></div></div>
                 </div>
             </div>
         </div>
@@ -699,15 +713,27 @@
     }
 
     function buildNicknameChecks() {
-        const wrap = document.getElementById('nicknameChecks');
-        wrap.innerHTML = currentNicknameList.map(n =>
-            '<label><input type="checkbox" value="' + n + '"> ' + n + '</label>'
-        ).join('');
-    }
+    const wrap = document.getElementById('nicknameChecks');
+    wrap.innerHTML = currentNicknameList.map(n =>
+        '<label><input type="checkbox" value="' + n + '" onchange="updSummary()"> ' + n + '</label>'
+    ).join('');
+    updSummary(); // 加这行
+}
 
     function selectAll(containerId) {
-        document.querySelectorAll('#' + containerId + ' input[type="checkbox"]').forEach(cb => cb.checked = true);
-    }
+    const cbs = document.querySelectorAll('#' + containerId + ' input[type="checkbox"]');
+    const allChecked = Array.from(cbs).every(cb => cb.checked);
+    cbs.forEach(cb => cb.checked = !allChecked);
+}
+
+function updSummary() {
+    const nc = document.querySelectorAll('#nicknameChecks input:checked').length;
+    const nt = document.querySelectorAll('#nicknameChecks input').length;
+    const fc = document.querySelectorAll('#fieldChecks input:checked').length;
+    const ft = document.querySelectorAll('#fieldChecks input').length;
+    if(nt>0) document.getElementById('nickSummary').textContent = '选择成员（'+nc+'/'+nt+'）';
+    document.getElementById('fieldSummary').textContent = '查询字段（'+fc+'/'+ft+'）';
+}
 
     async function adminQuery() {
         const nicknames = Array.from(document.querySelectorAll('#nicknameChecks input:checked')).map(cb => cb.value);
@@ -728,6 +754,7 @@
         });
         html += '</tbody></table>';
         wrap.innerHTML = html;
+document.getElementById('btn-capture').style.display = 'block';
     }
 
     async function submitAssign() {
@@ -741,6 +768,16 @@
         const res = await requestGas({ action:'reveal', password:'08270430' }, 'btn-reveal');
         showToast(res.message); if (res.success) loadFeedback();
     }
+
+async function captureResult() {
+    const el = document.getElementById('adminQueryResult');
+    if (!el.innerHTML) return;
+    const canvas = await html2canvas(el, {backgroundColor:'#ffffff',scale:2});
+    const a = document.createElement('a');
+    a.download = '查询结果.png';
+    a.href = canvas.toDataURL();
+    a.click();
+}
 
     async function submitReset() {
         if (!confirm("确认清空全部数据并开启新一轮吗？\n\n此操作完全不可逆！")) return;
