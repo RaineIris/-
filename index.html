@@ -148,19 +148,23 @@
         .float-lock:hover{background:#f5f4f1;color:var(--accent);}
 
         /* 神秘弹窗 */
-        .secret-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:3000;align-items:center;justify-content:center;}
+        .secret-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:3000;align-items:center;justify-content:center;}
         .secret-overlay.show{display:flex;}
-        .secret-box{background:#0d0d0d;border:1px solid #1e1e1e;border-radius:16px;padding:44px 36px;width:180px;text-align:center;position:relative;overflow:hidden;}
-        .secret-input{background:transparent;border:none;border-bottom:1px solid #2a2a2a;color:#fff;width:100%;text-align:center;letter-spacing:10px;font-size:22px;padding:8px 0;outline:none;font-family:inherit;transition:border-color .2s;}
-        .secret-input:focus{border-bottom-color:#444;}
-        @keyframes secretShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-        .secret-input.shake{animation:secretShake .4s ease;}
-
-        /* ✓动画 */
-        .check-anim{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:#0d0d0d;border-radius:16px;}
-        .check-anim.show{display:flex;}
-        @keyframes drawCircle{from{stroke-dashoffset:126;}to{stroke-dashoffset:0;}}
-        @keyframes drawCheck{from{stroke-dashoffset:50;}to{stroke-dashoffset:0;}}
+        .secret-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px 32px 28px;width:260px;text-align:center;position:relative;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.12);}
+        .secret-title{margin:0 0 6px 0;font-size:17px;font-weight:500;color:var(--text);letter-spacing:.5px;}
+        .secret-display{height:36px;line-height:36px;font-size:20px;letter-spacing:10px;color:var(--accent);margin-bottom:24px;min-height:36px;}
+        .secret-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+        .secret-key{background:var(--bg);border:1px solid var(--border);border-radius:10px;height:48px;font-size:18px;font-weight:400;color:var(--text);cursor:pointer;transition:background .15s,transform .1s;display:flex;align-items:center;justify-content:center;width:100%;}
+        .secret-key:active{background:var(--border);transform:scale(.95);}
+        .secret-key.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none;}
+        .secret-key.del{font-size:15px;color:var(--light);}
+        .secret-foot{display:flex;gap:10px;}
+        .secret-cancel{flex:1;padding:11px;background:var(--border);color:var(--text);border:none;border-radius:8px;font-size:14px;cursor:pointer;transition:background .2s;width:auto;}
+        .secret-cancel:hover{background:#d8d5cf;}
+        .secret-confirm{flex:1;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;transition:background .2s;width:auto;}
+        .secret-confirm:hover{background:var(--ah);}
+        @keyframes secretShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-8px)}35%{transform:translateX(8px)}55%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+        .secret-box.shake{animation:secretShake .45s ease;}
 
         /* Modal */
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;}
@@ -203,7 +207,6 @@
             <button class="secret-cancel" onclick="closeSecret()">取消</button>
             <button class="secret-confirm" onclick="verifySecret()">确认</button>
         </div>
-        <div class="check-anim" id="checkAnim"></div>
     </div>
 </div>
 
@@ -806,7 +809,9 @@
     function verifySecret() {
         if (!secretValue) return;
         if (secretValue === '08270430') {
-            closeSecret();
+            document.getElementById('secretOverlay').classList.remove('show');
+            secretValue = '';
+            updateDisplay();
             adminUnlocked = true;
             document.getElementById('floatLock').style.display='flex';
             buildNicknameChecks();
@@ -819,7 +824,7 @@
         } else {
             const box = document.getElementById('secretBox');
             box.classList.add('shake');
-            setTimeout(() => { secretValue=''; updateDisplay(); box.classList.remove('shake'); }, 450);
+            setTimeout(() => { secretValue=''; updateDisplay(); box.classList.remove('shake'); }, 500);
         }
     }
 
