@@ -6,387 +6,157 @@
     <title>神秘小盲盒</title>
     <style>
         :root {
-            --bg-color: #f5f4f1;
-            --card-bg: #ffffff;
-            --text-main: #333333;
-            --text-light: #666666;
-            --accent: #d97757;
-            --accent-hover: #c46347;
-            --border: #e6e4df;
-            --green: #4a9e6b;
-            --red: #c0392b;
+            --bg: #f5f4f1; --card: #ffffff; --text: #333333;
+            --light: #666666; --accent: #d97757; --ah: #c46347;
+            --border: #e6e4df; --green: #4a9e6b; --red: #c0392b;
         }
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
-        .container {
-            background: var(--card-bg);
-            width: 100%;
-            max-width: 440px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
-        .header {
-            padding: 24px;
-            text-align: center;
-            border-bottom: 1px solid var(--border);
-        }
-        .header h1 { margin: 0; font-size: 20px; font-weight: 500; }
-        .nav {
-            display: flex;
-            border-bottom: 1px solid var(--border);
-        }
-        .nav-btn {
-            flex: 1;
-            padding: 12px 6px;
-            text-align: center;
-            background: none;
-            border: none;
-            font-size: 14px;
-            color: var(--text-light);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .nav-btn.active {
-            color: var(--accent);
-            font-weight: bold;
-            border-bottom: 2px solid var(--accent);
-        }
-        .nav-lock {
-            flex: 0;
-            padding: 12px 14px;
-            font-size: 15px;
-            opacity: 0.3;
-        }
-        .nav-lock:hover { opacity: 0.6; }
-        .nav-lock.active { opacity: 1; border-bottom: 2px solid var(--accent); }
-        .content { padding: 24px; }
-        .section { display: none; }
-        .section.active { display: block; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 14px;
-            color: var(--text-main);
-        }
-        .form-hint {
-            font-size: 12px;
-            color: #999999;
-            font-weight: normal;
-            display: block;
-            margin-top: 2px;
-        }
-        input, textarea, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 14px;
-            box-sizing: border-box;
-            font-family: inherit;
-            background-color: #faf9f7;
-        }
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: var(--accent);
-            background-color: #fff;
-        }
-        textarea { resize: none; min-height: 40px; overflow-y: hidden; }
-        button.primary {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        button.primary:hover { background-color: var(--accent-hover); }
-        button.secondary {
-            width: 100%;
-            padding: 12px;
-            background-color: #737373;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            cursor: pointer;
-            margin-top: 12px;
-            transition: background 0.2s;
-        }
-        button.secondary:hover { background-color: #525252; }
-        button.danger {
-            width: 100%;
-            padding: 12px;
-            background-color: #b94040;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            cursor: pointer;
-            margin-top: 12px;
-            transition: background 0.2s;
-        }
-        button.danger:hover { background-color: #8f2e2e; }
-        button:disabled { opacity: 0.7; cursor: not-allowed; }
-        .status-box {
-            margin-top: 24px;
-            padding: 16px;
-            background: #fdfaf8;
-            border: 1px solid #f2e6e1;
-            border-radius: 8px;
-        }
-        .status-box p {
-            margin: 0 0 8px 0;
-            font-size: 14px;
-            color: var(--text-main);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .refresh-link {
-            color: var(--accent);
-            font-size: 13px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            transition: opacity 0.2s;
-        }
-        .refresh-link:hover { opacity: 0.8; }
-        .refresh-link.loading { opacity: 0.6; pointer-events: none; }
-        .refresh-link svg { margin-right: 4px; }
-        .list-toggle {
-            color: var(--accent);
-            font-size: 14px;
-            cursor: pointer;
-            text-decoration: underline;
-            text-underline-offset: 4px;
-        }
-        .name-list {
-            display: none;
-            margin-top: 10px;
-            font-size: 14px;
-            color: var(--text-light);
-            line-height: 1.6;
-        }
-        .name-list.show { display: block; }
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 2000;
-        }
-        .radio-group, .checkbox-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 8px;
-            margin-top: 4px;
-        }
-        .radio-group label, .checkbox-group label {
-            display: inline-flex;
-            align-items: center;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .radio-group input, .checkbox-group input {
-            width: auto;
-            margin-right: 6px;
-            background: none;
-        }
-        .dropdown-container {
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 10px;
-            background: #faf9f7;
-            margin-top: 6px;
-            display: none;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .dropdown-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        .result-box {
-            margin-top: 20px;
-            padding: 16px;
-            background: #fdfaf8;
-            border: 1px dashed var(--accent);
-            border-radius: 8px;
-            display: none;
-        }
-        .result-box h3 { margin: 0 0 4px 0; font-size: 14px; color: var(--text-light); }
-        .result-box p {
-            margin: 0 0 12px 0;
-            font-size: 15px;
-            font-weight: 500;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-        .result-box p:last-child { margin-bottom: 0; }
+        *{box-sizing:border-box;}
+        body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:20px;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;}
+        .container{background:var(--card);width:100%;max-width:440px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.05);overflow:hidden;}
+        .header{padding:24px;text-align:center;border-bottom:1px solid var(--border);}
+        .header h1{margin:0;font-size:20px;font-weight:500;}
+        .nav{display:flex;border-bottom:1px solid var(--border);}
+        .nav-btn{flex:1;padding:12px 6px;text-align:center;background:none;border:none;font-size:14px;color:var(--light);cursor:pointer;transition:all .2s;}
+        .nav-btn.active{color:var(--accent);font-weight:bold;border-bottom:2px solid var(--accent);}
+        .nav-lock{flex:0;padding:12px 14px;font-size:15px;opacity:.3;}
+        .nav-lock:hover{opacity:.6;}
+        .nav-lock.active{opacity:1;border-bottom:2px solid var(--accent);}
+        .content{padding:24px;}
+        .section{display:none;}.section.active{display:block;}
+        .form-group{margin-bottom:16px;}
+        .form-group label{display:block;margin-bottom:6px;font-size:14px;}
+        .form-hint{font-size:12px;color:#999;font-weight:normal;display:block;margin-top:2px;}
+        input,textarea,select{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:14px;box-sizing:border-box;font-family:inherit;background:#faf9f7;}
+        input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);background:#fff;}
+        textarea{resize:none;min-height:40px;overflow-y:hidden;}
+        button.primary{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;transition:background .2s;}
+        button.primary:hover{background:var(--ah);}
+        button.secondary{width:100%;padding:12px;background:#737373;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;margin-top:12px;transition:background .2s;}
+        button.secondary:hover{background:#525252;}
+        button.danger{width:100%;padding:12px;background:#b94040;color:#fff;border:none;border-radius:6px;font-size:15px;cursor:pointer;margin-top:12px;transition:background .2s;}
+        button.danger:hover{background:#8f2e2e;}
+        button:disabled{opacity:.7;cursor:not-allowed;}
+        .status-box{margin-top:24px;padding:16px;background:#fdfaf8;border:1px solid #f2e6e1;border-radius:8px;}
+        .status-box p{margin:0 0 8px 0;font-size:14px;display:flex;justify-content:space-between;align-items:center;}
+        .refresh-link{color:var(--accent);font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:opacity .2s;}
+        .refresh-link:hover{opacity:.8;}
+        .refresh-link.loading{opacity:.6;pointer-events:none;}
+        .refresh-link svg{margin-right:4px;}
+        .list-toggle{color:var(--accent);font-size:14px;cursor:pointer;text-decoration:underline;text-underline-offset:4px;}
+        .name-list{display:none;margin-top:10px;font-size:14px;color:var(--light);line-height:1.6;}
+        .name-list.show{display:block;}
+        .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;pointer-events:none;opacity:0;transition:opacity .3s;z-index:2000;}
+        .radio-group,.checkbox-group{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;margin-top:4px;}
+        .radio-group label,.checkbox-group label{display:inline-flex;align-items:center;font-size:14px;cursor:pointer;}
+        .radio-group input,.checkbox-group input{width:auto;margin-right:6px;background:none;}
+        .dropdown-container{border:1px solid var(--border);border-radius:6px;padding:10px;background:#faf9f7;margin-top:6px;display:none;max-height:200px;overflow-y:auto;}
+        .dropdown-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+        .result-box{margin-top:20px;padding:16px;background:#fdfaf8;border:1px dashed var(--accent);border-radius:8px;display:none;}
+        .result-box h3{margin:0 0 4px 0;font-size:14px;color:var(--light);}
+        .result-box p{margin:0 0 12px 0;font-size:15px;font-weight:500;white-space:pre-wrap;word-break:break-all;}
+        .result-box p:last-child{margin-bottom:0;}
 
-        /* ── 收到啦 section ── */
-        .feedback-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-        .feedback-header span { font-size: 14px; color: var(--text-light); }
-        .feedback-refresh {
-            color: var(--accent);
-            font-size: 13px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .feedback-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        .feedback-table th {
-            text-align: left;
-            padding: 8px 6px;
-            border-bottom: 2px solid var(--border);
-            color: var(--text-light);
-            font-weight: 500;
-            white-space: nowrap;
-        }
-        .feedback-table td {
-            padding: 10px 6px;
-            border-bottom: 1px solid var(--border);
-            vertical-align: top;
-            word-break: break-all;
-        }
-        .feedback-table tr:last-child td { border-bottom: none; }
-        .feedback-table .empty-cell { color: #bbb; font-style: italic; }
-        .btn-fill {
-            padding: 4px 10px;
-            background: transparent;
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.2s;
-            width: auto;
-        }
-        .btn-fill:hover { background: var(--accent); color: #fff; }
-        .guess-correct { color: var(--green); font-weight: 600; }
-        .guess-wrong s { color: #bbb; }
-        .guess-wrong .actual { color: var(--red); font-weight: 600; margin-left: 4px; }
+        /* 提醒按钮区 */
+        .remind-section{margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+        .remind-title{font-size:13px;color:var(--light);margin:0 0 10px 0;}
+        .remind-btns{display:flex;gap:8px;}
+        .remind-btn{flex:1;padding:9px 4px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:6px;font-size:13px;cursor:pointer;transition:all .2s;width:auto;}
+        .remind-btn:hover{background:var(--accent);color:#fff;}
 
-        /* ── 管理员 section ── */
-        .admin-lock {
-            text-align: center;
-            padding: 20px 0;
-        }
-        .admin-lock-hint {
-            font-size: 13px;
-            color: #bbb;
-            margin-bottom: 16px;
-        }
-        .admin-lock-input {
-            display: flex;
-            gap: 8px;
-        }
-        .admin-lock-input input {
-            flex: 1;
-            text-align: center;
-            letter-spacing: 4px;
-        }
-        .admin-lock-input button {
-            padding: 10px 18px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            width: auto;
-            transition: background 0.2s;
-        }
-        .admin-lock-input button:hover { background: var(--accent-hover); }
-        .admin-panel { display: none; }
-        .admin-panel-title {
-            font-size: 13px;
-            color: var(--text-light);
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
-        }
-        .admin-note {
-            font-size: 12px;
-            color: var(--text-light);
-            margin-top: 12px;
-            line-height: 1.6;
-        }
+        /* 捎话区 */
+        .msg-wrap{margin-top:14px;}
+        .msg-toggle{font-size:13px;color:var(--light);cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-style:dotted;}
+        .msg-toggle:hover{color:var(--accent);}
+        .msg-area{margin-top:10px;display:none;}
+        .msg-area textarea{min-height:70px;font-size:14px;}
+        .msg-action-btns{display:flex;gap:8px;margin-top:8px;}
+        .msg-action-btns button{flex:1;padding:8px;border:none;border-radius:6px;font-size:14px;cursor:pointer;width:auto;}
+        .msg-btn-send{background:var(--accent);color:#fff;transition:background .2s;}
+        .msg-btn-send:hover{background:var(--ah);}
+        .msg-btn-cancel{background:var(--border);color:var(--text);}
+        .msg-btn-cancel:hover{background:#d5d3ce;}
 
-        /* ── Modal ── */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .modal-overlay.show { display: flex; }
-        .modal-box {
-            background: #fff;
-            border-radius: 12px;
-            padding: 24px;
-            width: 100%;
-            max-width: 360px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.15);
-        }
-        .modal-title {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-        .modal-subtitle {
-            font-size: 13px;
-            color: var(--text-light);
-            margin-bottom: 20px;
-        }
-        .modal-form-group { margin-bottom: 14px; }
-        .modal-form-group label { display: block; font-size: 13px; margin-bottom: 5px; color: var(--text-main); }
-        .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
-        .modal-btns button { flex: 1; padding: 11px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; }
-        .modal-btn-confirm { background: var(--accent); color: #fff; transition: background 0.2s; }
-        .modal-btn-confirm:hover { background: var(--accent-hover); }
-        .modal-btn-cancel { background: var(--border); color: var(--text-main); transition: background 0.2s; }
-        .modal-btn-cancel:hover { background: #d5d3ce; }
+        /* 收件箱 */
+        .inbox-wrap{margin-top:14px;}
+        .inbox-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fdfaf8;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color .2s;}
+        .inbox-bar:hover{border-color:var(--accent);}
+        .inbox-icon{color:var(--light);display:flex;align-items:center;flex-shrink:0;}
+        .inbox-label{font-size:14px;color:var(--text);flex:1;}
+        .inbox-badge{background:var(--accent);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;min-width:20px;text-align:center;}
+        .inbox-chevron{color:var(--light);font-size:12px;transition:transform .2s;}
+        .inbox-chevron.open{transform:rotate(180deg);}
+        .inbox-content{display:none;margin-top:8px;}
+        .inbox-empty{font-size:13px;color:#bbb;text-align:center;padding:16px 0;}
+        .msg-item{padding:12px 0;border-bottom:1px solid var(--border);}
+        .msg-item:last-child{border-bottom:none;}
+        .msg-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+        .msg-item-tag{font-size:11px;color:#aaa;background:#f5f4f1;padding:2px 8px;border-radius:10px;}
+        .msg-item-time{font-size:11px;color:#bbb;}
+        .msg-item-content{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:8px;}
+        .reply-toggle{font-size:12px;color:var(--light);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+        .reply-toggle:hover{color:var(--accent);}
+        .reply-area{margin-top:8px;display:none;}
+        .reply-area textarea{min-height:50px;font-size:13px;}
+        .reply-action-btns{display:flex;gap:6px;margin-top:6px;}
+        .reply-action-btns button{flex:1;padding:7px;border:none;border-radius:5px;font-size:13px;cursor:pointer;width:auto;}
+        .reply-btn-send{background:var(--accent);color:#fff;}
+        .reply-btn-send:hover{background:var(--ah);}
+        .reply-btn-cancel{background:var(--border);color:var(--text);}
+
+        /* 收到啦 */
+        .feedback-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+        .feedback-header span{font-size:14px;color:var(--light);}
+        .feedback-refresh{color:var(--accent);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+        .feedback-table{width:100%;border-collapse:collapse;font-size:13px;}
+        .feedback-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--border);color:var(--light);font-weight:500;white-space:nowrap;}
+        .feedback-table td{padding:10px 6px;border-bottom:1px solid var(--border);vertical-align:top;word-break:break-all;}
+        .feedback-table tr:last-child td{border-bottom:none;}
+        .empty-cell{color:#bbb;font-style:italic;}
+        .btn-fill{padding:4px 10px;background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;transition:all .2s;width:auto;}
+        .btn-fill:hover{background:var(--accent);color:#fff;}
+        .guess-correct{color:var(--green);font-weight:600;}
+        .guess-wrong s{color:#bbb;}
+        .guess-wrong .actual{color:var(--red);font-weight:600;margin-left:4px;}
+
+        /* 管理员 */
+        .admin-lock{text-align:center;padding:20px 0;}
+        .admin-lock-hint{font-size:13px;color:#bbb;margin-bottom:16px;}
+        .admin-lock-input{display:flex;gap:8px;}
+        .admin-lock-input input{flex:1;text-align:center;letter-spacing:4px;}
+        .admin-lock-input button{padding:10px 18px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:16px;width:auto;transition:background .2s;}
+        .admin-lock-input button:hover{background:var(--ah);}
+        .admin-panel{display:none;}
+        .admin-section{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+        .admin-section-title{font-size:13px;color:var(--light);margin:0 0 12px 0;font-weight:500;}
+        .admin-note{font-size:12px;color:var(--light);margin-top:12px;line-height:1.6;}
+
+        /* 管理员查询 */
+        .query-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+        .query-group-title{font-size:13px;color:var(--light);margin:0 0 8px 0;}
+        .query-check-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;padding:2px;}
+        .query-check-list label{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;}
+        .query-check-list input{width:auto;margin:0;}
+        .select-all-link{font-size:12px;color:var(--accent);cursor:pointer;text-decoration:underline;margin-top:4px;display:inline-block;}
+        .query-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:14px;}
+        .query-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--border);color:var(--light);font-weight:500;white-space:nowrap;}
+        .query-table td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:top;word-break:break-all;}
+        .query-table tr:last-child td{border-bottom:none;}
+        .query-table .nm{font-weight:500;}
+
+        /* Modal */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+        .modal-overlay.show{display:flex;}
+        .modal-box{background:#fff;border-radius:12px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.15);}
+        .modal-title{font-size:16px;font-weight:500;margin-bottom:4px;}
+        .modal-subtitle{font-size:13px;color:var(--light);margin-bottom:20px;}
+        .modal-form-group{margin-bottom:14px;}
+        .modal-form-group label{display:block;font-size:13px;margin-bottom:5px;}
+        .modal-btns{display:flex;gap:10px;margin-top:20px;}
+        .modal-btns button{flex:1;padding:11px;border:none;border-radius:6px;font-size:14px;cursor:pointer;}
+        .modal-btn-confirm{background:var(--accent);color:#fff;transition:background .2s;}
+        .modal-btn-confirm:hover{background:var(--ah);}
+        .modal-btn-cancel{background:var(--border);color:var(--text);}
+        .modal-btn-cancel:hover{background:#d5d3ce;}
     </style>
 </head>
 <body>
@@ -411,9 +181,7 @@
         </div>
         <div class="modal-form-group">
             <label>猜是谁送的</label>
-            <select id="modal-guess">
-                <option value="">-- 我猜是…… --</option>
-            </select>
+            <select id="modal-guess"><option value="">-- 我猜是…… --</option></select>
         </div>
         <div class="modal-btns">
             <button class="modal-btn-cancel" onclick="closeModal()">取消</button>
@@ -424,35 +192,24 @@
 
 <div class="container">
     <div class="header"><h1>神秘小盲盒</h1></div>
-
     <div class="nav">
-        <button class="nav-btn active" onclick="switchTab('register', this)">我要报名</button>
-        <button class="nav-btn" onclick="switchTab('query', this)">查询提醒</button>
-        <button class="nav-btn" onclick="switchTab('feedback', this)">收到啦 🎉</button>
-        <button class="nav-btn nav-lock" onclick="switchTab('admin', this)" title="管理">🔒</button>
+        <button class="nav-btn active" onclick="switchTab('register',this)">我要报名</button>
+        <button class="nav-btn" onclick="switchTab('query',this)">查询提醒</button>
+        <button class="nav-btn" onclick="switchTab('feedback',this)">收到啦 🎉</button>
+        <button class="nav-btn nav-lock" onclick="switchTab('admin',this)" title="管理">🔒</button>
     </div>
-
     <div class="content">
 
         <!-- ── 报名 ── -->
         <div id="register" class="section active">
-            <div class="form-group">
-                <label>你的昵称（用于名单公示）</label>
-                <input type="text" id="reg-name" placeholder="输入昵称">
-            </div>
-            <div class="form-group">
-                <label>设置查询密码（4位数字）</label>
-                <input type="password" id="reg-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="设置4位数字密码">
-            </div>
-            <div class="form-group">
-                <label>你的QQ邮箱（用于接收自动通知）</label>
-                <input type="email" id="reg-email" placeholder="输入邮箱，如：123456@qq.com">
-            </div>
+            <div class="form-group"><label>你的昵称（用于名单公示）</label><input type="text" id="reg-name" placeholder="输入昵称"></div>
+            <div class="form-group"><label>设置查询密码（4位数字）</label><input type="password" id="reg-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="设置4位数字密码"></div>
+            <div class="form-group"><label>你的QQ邮箱（用于接收自动通知）</label><input type="email" id="reg-email" placeholder="输入邮箱，如：123456@qq.com"></div>
             <div class="form-group">
                 <label>可点时间</label>
                 <div class="radio-group">
-                    <label><input type="radio" name="time-choice" value="我都行！" checked onclick="toggleInputDisplay('reg-time-input', false)"> 我都行！</label>
-                    <label><input type="radio" name="time-choice" value="填写" onclick="toggleInputDisplay('reg-time-input', true)"> 填写时间</label>
+                    <label><input type="radio" name="time-choice" value="我都行！" checked onclick="toggleInputDisplay('reg-time-input',false)"> 我都行！</label>
+                    <label><input type="radio" name="time-choice" value="填写" onclick="toggleInputDisplay('reg-time-input',true)"> 填写时间</label>
                 </div>
                 <textarea id="reg-time-input" placeholder="输入具体方便接收外卖的时间段" style="display:none;margin-top:6px" class="auto-grow"></textarea>
             </div>
@@ -460,7 +217,7 @@
                 <label>可以接受什么种类（多选）</label>
                 <div class="checkbox-group">
                     <label><input type="checkbox" id="cate-any" checked onclick="handleCategoryAny(this)"> 无所谓</label>
-                    <label><input type="checkbox" id="cate-select" onclick="toggleInputDisplay('cate-dropdown', this.checked)"> 指定种类</label>
+                    <label><input type="checkbox" id="cate-select" onclick="toggleInputDisplay('cate-dropdown',this.checked)"> 指定种类</label>
                     <div class="dropdown-container" id="cate-dropdown">
                         <div class="dropdown-grid">
                             <label><input type="checkbox" name="food-cate" value="果茶" onclick="syncCategoryChoice()"> 果茶</label>
@@ -483,23 +240,23 @@
                             <label><input type="checkbox" name="food-cate" value="特色小吃" onclick="syncCategoryChoice()"> 特色小吃</label>
                         </div>
                     </div>
-                    <label><input type="checkbox" id="cate-remark" onclick="toggleInputDisplay('reg-remarks-input', this.checked)"> 备注</label>
+                    <label><input type="checkbox" id="cate-remark" onclick="toggleInputDisplay('reg-remarks-input',this.checked)"> 备注</label>
                     <textarea id="reg-remarks-input" placeholder="输入具体的口味、分量等品类补充要求" style="display:none;margin-top:6px" class="auto-grow"></textarea>
                 </div>
             </div>
             <div class="form-group">
                 <label>是否有忌口要求？</label>
                 <div class="radio-group">
-                    <label><input type="radio" name="diet-choice" value="无" checked onclick="toggleInputDisplay('reg-diet', false)"> 无</label>
-                    <label><input type="radio" name="diet-choice" value="有" onclick="toggleInputDisplay('reg-diet', true)"> 填写</label>
+                    <label><input type="radio" name="diet-choice" value="无" checked onclick="toggleInputDisplay('reg-diet',false)"> 无</label>
+                    <label><input type="radio" name="diet-choice" value="有" onclick="toggleInputDisplay('reg-diet',true)"> 填写</label>
                 </div>
                 <textarea id="reg-diet" placeholder="输入忌口（如：不吃香菜等）" style="display:none;margin-top:6px" class="auto-grow"></textarea>
             </div>
             <div class="form-group">
                 <label>许愿栏 <span class="form-hint">※ 许愿时间！不许许愿太过具体的东西哦（指</span></label>
                 <div class="radio-group">
-                    <label><input type="radio" name="wish-choice" value="无" checked onclick="toggleInputDisplay('reg-wish-input', false)"> 无</label>
-                    <label><input type="radio" name="wish-choice" value="有" onclick="toggleInputDisplay('reg-wish-input', true)"> 填写</label>
+                    <label><input type="radio" name="wish-choice" value="无" checked onclick="toggleInputDisplay('reg-wish-input',false)"> 无</label>
+                    <label><input type="radio" name="wish-choice" value="有" onclick="toggleInputDisplay('reg-wish-input',true)"> 填写</label>
                 </div>
                 <textarea id="reg-wish-input" placeholder="写下你的盲盒小愿望吧" style="display:none;margin-top:6px" class="auto-grow"></textarea>
             </div>
@@ -512,10 +269,7 @@
                 <p>
                     <span>当前报名人数：<strong id="user-count">0</strong> 人</span>
                     <a class="refresh-link" onclick="triggerRefresh()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-                            <path d="M21 3v5h-5"></path>
-                        </svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                         <span>刷新</span>
                     </a>
                 </p>
@@ -526,15 +280,10 @@
 
         <!-- ── 查询提醒 ── -->
         <div id="query" class="section">
-            <div class="form-group">
-                <label>输入你的报名昵称</label>
-                <input type="text" id="query-name" placeholder="你报名时填的昵称">
-            </div>
-            <div class="form-group">
-                <label>输入你的查询密码</label>
-                <input type="password" id="query-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="输入4位数字密码">
-            </div>
+            <div class="form-group"><label>输入你的报名昵称</label><input type="text" id="query-name" placeholder="你报名时填的昵称"></div>
+            <div class="form-group"><label>输入你的查询密码</label><input type="password" id="query-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="输入4位数字密码"></div>
             <button class="primary" id="btn-query" onclick="submitQuery()">查询我的盲盒任务</button>
+
             <div class="result-box" id="query-result">
                 <h3>你需要送往的地址：</h3><p id="target-address"></p>
                 <h3>对方的忌口要求：</h3><p id="target-diet"></p>
@@ -542,7 +291,48 @@
                 <h3>接受种类：</h3><p id="target-categories"></p>
                 <h3>品类备注：</h3><p id="target-remarks"></p>
                 <h3>对方的愿望：</h3><p id="target-wishlist"></p>
-                <button class="primary" id="btn-remind" onclick="submitRemind()" style="margin-top:16px;background-color:#444">我准备点了，提醒对方</button>
+
+                <!-- 三种提醒 -->
+                <div class="remind-section">
+                    <p class="remind-title">发送提醒给对方</p>
+                    <div class="remind-btns">
+                        <button class="remind-btn" id="btn-remind1" onclick="submitRemind(1)">准备点单</button>
+                        <button class="remind-btn" id="btn-remind2" onclick="submitRemind(2)">已下单</button>
+                        <button class="remind-btn" id="btn-remind3" onclick="submitRemind(3)">取货了</button>
+                    </div>
+                </div>
+
+                <!-- 捎话 -->
+                <div class="msg-wrap">
+                    <span class="msg-toggle" onclick="toggleMessage()">有话想说？给对方捎句话</span>
+                    <div class="msg-area" id="msgArea">
+                        <textarea id="msgContent" placeholder="写下你想说的，匿名发送给对方～"></textarea>
+                        <div class="msg-action-btns">
+                            <button class="msg-btn-cancel" onclick="toggleMessage()">取消</button>
+                            <button class="msg-btn-send" id="btn-send-msg" onclick="sendMessage()">发送</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 收件箱 -->
+                <div class="inbox-wrap" id="inboxWrap" style="display:none">
+                    <div class="inbox-bar" onclick="toggleInbox()">
+                        <span class="inbox-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                <polyline points="2,9 12,15 22,9"/>
+                            </svg>
+                        </span>
+                        <span class="inbox-label">收件箱</span>
+                        <span class="inbox-badge" id="inboxBadge" style="display:none">0</span>
+                        <span class="inbox-chevron" id="inboxChevron">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+                        </span>
+                    </div>
+                    <div class="inbox-content" id="inboxContent">
+                        <div id="msgList"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -551,21 +341,15 @@
             <div class="feedback-header">
                 <span id="feedback-status">加载中…</span>
                 <a class="feedback-refresh" onclick="loadFeedback()">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-                        <path d="M21 3v5h-5"></path>
-                    </svg>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                     刷新
                 </a>
             </div>
-            <div id="feedback-table-wrap">
-                <p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">加载中…</p>
-            </div>
+            <div id="feedback-table-wrap"><p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">加载中…</p></div>
         </div>
 
         <!-- ── 管理员 ── -->
         <div id="admin" class="section">
-            <!-- 未验证：只显示密码输入 -->
             <div class="admin-lock" id="admin-lock">
                 <p class="admin-lock-hint">请输入暗号</p>
                 <div class="admin-lock-input">
@@ -573,13 +357,40 @@
                     <button onclick="verifyAdmin()">→</button>
                 </div>
             </div>
-            <!-- 验证成功后显示 -->
             <div class="admin-panel" id="admin-panel">
-                <p class="admin-panel-title">管理员操作区 · 每步都有确认</p>
+                <p style="font-size:13px;color:var(--light);margin:0 0 14px 0">管理员操作区 · 每步都有确认</p>
                 <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
                 <button class="secondary" id="btn-reveal" onclick="submitReveal()">公布答案 🎉</button>
                 <button class="danger" id="btn-reset" onclick="submitReset()">重置表格（开启新一轮）</button>
-                <p class="admin-note">分配完成后数据保留供查询；揭晓后"收到啦"页面将显示每人猜测的正确性；重置将清空全部数据。</p>
+                <p class="admin-note">分配完成后数据保留供查询；揭晓后"收到啦"页面将显示猜测结果；重置将清空全部数据含消息记录。</p>
+
+                <!-- 信息查询 -->
+                <div class="admin-section">
+                    <p class="admin-section-title">信息查询</p>
+                    <div class="query-grid">
+                        <div>
+                            <p class="query-group-title">选择成员</p>
+                            <div class="query-check-list" id="nicknameChecks"></div>
+                            <span class="select-all-link" onclick="selectAll('nicknameChecks')">全选</span>
+                        </div>
+                        <div>
+                            <p class="query-group-title">查询字段</p>
+                            <div class="query-check-list" id="fieldChecks">
+                                <label><input type="checkbox" value="diet"> 忌口要求</label>
+                                <label><input type="checkbox" value="wishlist"> 小小心愿</label>
+                                <label><input type="checkbox" value="time"> 可点时间</label>
+                                <label><input type="checkbox" value="categories"> 接受种类</label>
+                                <label><input type="checkbox" value="remarks"> 品类备注</label>
+                                <label><input type="checkbox" value="receivedTime"> 收到时间</label>
+                                <label><input type="checkbox" value="receivedContent"> 收到内容</label>
+                                <label><input type="checkbox" value="guess"> 猜测发送者</label>
+                            </div>
+                            <span class="select-all-link" onclick="selectAll('fieldChecks')">全选</span>
+                        </div>
+                    </div>
+                    <button class="primary" id="btn-query-admin" onclick="adminQuery()">查询</button>
+                    <div id="adminQueryResult"></div>
+                </div>
             </div>
         </div>
 
@@ -587,37 +398,36 @@
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbzUX5thn3P8Y-06rKV1dVVg9C3_cQXnrD0HCHt-kg8GFsdbfvSzWM4w7bE-f6UzUrWWPA/exec";
-
+    const API_URL = "https://script.google.com/macros/s/AKfycbxcgqPn_26Iabs9QEwsciI3QyR3cPYNjvI2PrInFtNeaH0lQUnr3Wq0xh_gS8a9jrWeiQ/exec";
     let refreshTimer = null;
     let currentNicknameList = [];
     let modalTargetNickname = '';
+    let cachedMessages = [];
+    let inboxOpen = false;
+    let currentQueryName = '';
+    let currentQueryPwd = '';
 
     function showToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.style.opacity = '1';
-        setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.style.opacity = '1';
+        setTimeout(() => { t.style.opacity = '0'; }, 3000);
     }
 
     document.querySelectorAll('textarea.auto-grow').forEach(el => {
         el.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
+            this.style.height = this.scrollHeight + 'px';
         });
     });
 
     function toggleInputDisplay(id, show) {
         const el = document.getElementById(id);
         el.style.display = show ? 'block' : 'none';
-        if (!show) {
-            el.value = '';
-            if (el.classList.contains('auto-grow')) el.style.height = 'auto';
-        }
+        if (!show) { el.value = ''; if (el.classList.contains('auto-grow')) el.style.height = 'auto'; }
     }
 
-    function handleCategoryAny(checkbox) {
-        if (checkbox.checked) {
+    function handleCategoryAny(cb) {
+        if (cb.checked) {
             document.getElementById('cate-select').checked = false;
             document.getElementById('cate-remark').checked = false;
             toggleInputDisplay('cate-dropdown', false);
@@ -627,8 +437,8 @@
     }
 
     function syncCategoryChoice() {
-        const checkedCates = document.querySelectorAll('input[name="food-cate"]:checked');
-        if (checkedCates.length > 0) document.getElementById('cate-any').checked = false;
+        if (document.querySelectorAll('input[name="food-cate"]:checked').length > 0)
+            document.getElementById('cate-any').checked = false;
     }
 
     function switchTab(tabId, btn) {
@@ -637,35 +447,22 @@
         document.getElementById(tabId).classList.add('active');
         if (btn) btn.classList.add('active');
         clearInterval(refreshTimer);
-        if (tabId === 'register') {
-            loadList();
-            refreshTimer = setInterval(loadList, 20000);
-        } else if (tabId === 'feedback') {
-            loadFeedback();
-            refreshTimer = setInterval(loadFeedback, 20000);
-        }
+        if (tabId === 'register') { loadList(); refreshTimer = setInterval(loadList, 20000); }
+        else if (tabId === 'feedback') { loadFeedback(); refreshTimer = setInterval(loadFeedback, 20000); }
     }
 
-    function toggleList() {
-        document.getElementById('user-list').classList.toggle('show');
-    }
+    function toggleList() { document.getElementById('user-list').classList.toggle('show'); }
 
     async function requestGas(data, btnId) {
         const btn = btnId ? document.getElementById(btnId) : null;
         if (btn) { btn.disabled = true; btn.dataset.oldText = btn.innerText; btn.innerText = "处理中..."; }
         try {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify(data)
-            });
-            const res = await response.json();
+            const res = await (await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(data) })).json();
             if (btn) { btn.disabled = false; btn.innerText = btn.dataset.oldText; }
             return res;
-        } catch (err) {
+        } catch(err) {
             if (btn) { btn.disabled = false; btn.innerText = btn.dataset.oldText; }
-            showToast("网络请求失败");
-            return { success: false, message: "网络异常" };
+            showToast("网络请求失败"); return { success: false, message: "网络异常" };
         }
     }
 
@@ -674,7 +471,7 @@
         const pwd = document.getElementById('reg-pwd').value.trim();
         const email = document.getElementById('reg-email').value.trim();
         const addr = document.getElementById('reg-address').value.trim();
-        if (!name || !pwd || !email || !addr) return showToast("昵称、密码、邮箱、地址均为必填项");
+        if (!name||!pwd||!email||!addr) return showToast("昵称、密码、邮箱、地址均为必填项");
         if (pwd.length !== 4 || isNaN(pwd)) return showToast("密码必须是4位数字");
         const timeChoice = document.querySelector('input[name="time-choice"]:checked').value;
         const time = timeChoice === '填写' ? document.getElementById('reg-time-input').value.trim() : "我都行！";
@@ -682,35 +479,32 @@
         let categories = "无所谓";
         if (document.getElementById('cate-select').checked) {
             const chosen = Array.from(document.querySelectorAll('input[name="food-cate"]:checked')).map(c => c.value);
-            if (chosen.length === 0) return showToast("请在下拉框中选择具体接受的种类");
+            if (!chosen.length) return showToast("请选择具体接受的种类");
             categories = chosen.join('、');
         }
         const remarks = document.getElementById('cate-remark').checked ? document.getElementById('reg-remarks-input').value.trim() : "无";
-        if (document.getElementById('cate-remark').checked && !remarks) return showToast("请填写品类备注要求");
+        if (document.getElementById('cate-remark').checked && !remarks) return showToast("请填写品类备注");
         const diet = document.querySelector('input[name="diet-choice"]:checked').value === '有' ? document.getElementById('reg-diet').value.trim() : "无";
-        if (document.querySelector('input[name="diet-choice"]:checked').value === '有' && !diet) return showToast("请填写你的忌口要求");
+        if (document.querySelector('input[name="diet-choice"]:checked').value === '有' && !diet) return showToast("请填写忌口要求");
         const wishlist = document.querySelector('input[name="wish-choice"]:checked').value === '有' ? document.getElementById('reg-wish-input').value.trim() : "无";
         if (document.querySelector('input[name="wish-choice"]:checked').value === '有' && !wishlist) return showToast("请写下你的愿望");
-        const res = await requestGas({ action: 'register', nickname: name, password: pwd, email, address: addr, time, categories, remarks, diet, wishlist }, 'btn-submit');
+        const res = await requestGas({ action:'register', nickname:name, password:pwd, email, address:addr, time, categories, remarks, diet, wishlist }, 'btn-submit');
         if (res.success) {
             showToast("报名成功！");
             ['reg-name','reg-pwd','reg-email','reg-address','reg-time-input','reg-remarks-input','reg-diet','reg-wish-input'].forEach(id => { document.getElementById(id).value = ''; });
             document.getElementById('cate-any').checked = true;
-            document.getElementById('cate-select').checked = false;
-            document.getElementById('cate-remark').checked = false;
+            ['cate-select','cate-remark'].forEach(id => document.getElementById(id).checked = false);
             document.querySelectorAll('input[name="food-cate"]').forEach(c => c.checked = false);
             document.querySelectorAll('input[name="time-choice"]')[0].checked = true;
             document.querySelectorAll('input[name="diet-choice"]')[0].checked = true;
             document.querySelectorAll('input[name="wish-choice"]')[0].checked = true;
             ['reg-time-input','cate-dropdown','reg-remarks-input','reg-diet','reg-wish-input'].forEach(id => toggleInputDisplay(id, false));
             loadList();
-        } else {
-            showToast(res.message);
-        }
+        } else { showToast(res.message); }
     }
 
     async function loadList() {
-        const res = await requestGas({ action: 'getList' }, null);
+        const res = await requestGas({ action:'getList' }, null);
         if (res.success) {
             currentNicknameList = res.list || [];
             document.getElementById('user-count').innerText = res.count;
@@ -722,8 +516,7 @@
         const link = document.querySelector('.refresh-link');
         const text = link.querySelector('span');
         if (link.classList.contains('loading')) return;
-        link.classList.add('loading');
-        text.innerText = "查询中...";
+        link.classList.add('loading'); text.innerText = "查询中...";
         await loadList();
         setTimeout(() => { link.classList.remove('loading'); text.innerText = "刷新"; showToast("名单已同步最新状态"); }, 300);
     }
@@ -731,67 +524,139 @@
     async function submitQuery() {
         const name = document.getElementById('query-name').value.trim();
         const pwd = document.getElementById('query-pwd').value.trim();
-        if (!name || !pwd) return showToast("昵称和密码不能为空");
-        const res = await requestGas({ action: 'query', nickname: name, password: pwd }, 'btn-query');
-        const resultBox = document.getElementById('query-result');
+        if (!name||!pwd) return showToast("昵称和密码不能为空");
+        const res = await requestGas({ action:'query', nickname:name, password:pwd }, 'btn-query');
+        const box = document.getElementById('query-result');
         if (res.success) {
+            currentQueryName = name; currentQueryPwd = pwd;
             document.getElementById('target-address').innerText = res.address;
             document.getElementById('target-diet').innerText = res.diet;
             document.getElementById('target-time').innerText = res.time;
             document.getElementById('target-categories').innerText = res.categories;
             document.getElementById('target-remarks').innerText = res.remarks;
             document.getElementById('target-wishlist').innerText = res.wishlist;
-            resultBox.style.display = 'block';
-        } else {
-            resultBox.style.display = 'none';
-            showToast(res.message);
-        }
+            box.style.display = 'block';
+            loadInbox(name, pwd);
+        } else { box.style.display = 'none'; showToast(res.message); }
     }
 
-    async function submitRemind() {
+    // ── 三种提醒 ──
+    async function submitRemind(type) {
         const name = document.getElementById('query-name').value.trim();
         const pwd = document.getElementById('query-pwd').value.trim();
-        if (!confirm("确定要发送点单提醒给对方吗？（对方邮箱将收到通知，但不会暴露你的身份）")) return;
-        const res = await requestGas({ action: 'remind', nickname: name, password: pwd }, 'btn-remind');
+        const labels = { 1:'准备点单', 2:'已下单', 3:'骑手取货' };
+        if (!confirm("确定发送「" + labels[type] + "」提醒给对方吗？（匿名发送）")) return;
+        const res = await requestGas({ action:'remind', nickname:name, password:pwd, remindType:type }, 'btn-remind'+type);
         showToast(res.message);
     }
 
-    // ── 收到记录 ─────────────────────────────
+    // ── 捎话 ──
+    function toggleMessage() {
+        const area = document.getElementById('msgArea');
+        const showing = area.style.display === 'block';
+        area.style.display = showing ? 'none' : 'block';
+        if (!showing) document.getElementById('msgContent').focus();
+        else document.getElementById('msgContent').value = '';
+    }
 
+    async function sendMessage() {
+        const content = document.getElementById('msgContent').value.trim();
+        if (!content) return showToast("请输入内容");
+        const res = await requestGas({ action:'sendMessage', nickname:currentQueryName, password:currentQueryPwd, content }, 'btn-send-msg');
+        showToast(res.message);
+        if (res.success) { document.getElementById('msgContent').value = ''; document.getElementById('msgArea').style.display = 'none'; }
+    }
+
+    // ── 收件箱 ──
+    async function loadInbox(name, pwd) {
+        const res = await requestGas({ action:'getInbox', nickname:name, password:pwd }, null);
+        if (!res.success) return;
+        cachedMessages = res.messages || [];
+        const unread = cachedMessages.filter(m => !m.isRead).length;
+        const wrap = document.getElementById('inboxWrap');
+        wrap.style.display = 'block';
+        const badge = document.getElementById('inboxBadge');
+        if (unread > 0) { badge.style.display = 'inline-block'; badge.textContent = unread; }
+        else { badge.style.display = 'none'; }
+    }
+
+    function toggleInbox() {
+        inboxOpen = !inboxOpen;
+        const content = document.getElementById('inboxContent');
+        const chevron = document.getElementById('inboxChevron');
+        content.style.display = inboxOpen ? 'block' : 'none';
+        chevron.classList.toggle('open', inboxOpen);
+        if (inboxOpen) {
+            renderMessages();
+            requestGas({ action:'markRead', nickname:currentQueryName, password:currentQueryPwd }, null);
+            document.getElementById('inboxBadge').style.display = 'none';
+        }
+    }
+
+    function renderMessages() {
+        const list = document.getElementById('msgList');
+        if (!cachedMessages.length) { list.innerHTML = '<p class="inbox-empty">暂无消息</p>'; return; }
+        list.innerHTML = cachedMessages.map(m => {
+            const tag = m.isReply ? '回话' : '新消息';
+            const canReply = !m.isReply;
+            return '<div class="msg-item">'
+                + '<div class="msg-item-header">'
+                + '<span class="msg-item-tag">' + tag + '</span>'
+                + '<span class="msg-item-time">' + m.time + '</span>'
+                + '</div>'
+                + '<div class="msg-item-content">' + escHtml(m.content) + '</div>'
+                + (canReply ? '<span class="reply-toggle" onclick="toggleReply(\'' + m.msgId + '\')">回话</span>'
+                    + '<div class="reply-area" id="reply-' + m.msgId + '">'
+                    + '<textarea placeholder="写下回话内容…"></textarea>'
+                    + '<div class="reply-action-btns">'
+                    + '<button class="reply-btn-cancel" onclick="toggleReply(\'' + m.msgId + '\')">取消</button>'
+                    + '<button class="reply-btn-send" onclick="sendReply(\'' + m.msgId + '\')">发送</button>'
+                    + '</div></div>' : '')
+                + '</div>';
+        }).join('');
+    }
+
+    function toggleReply(msgId) {
+        const area = document.getElementById('reply-' + msgId);
+        const showing = area.style.display === 'block';
+        area.style.display = showing ? 'none' : 'block';
+        if (!showing) area.querySelector('textarea').focus();
+    }
+
+    async function sendReply(msgId) {
+        const area = document.getElementById('reply-' + msgId);
+        const content = area.querySelector('textarea').value.trim();
+        if (!content) return showToast("请输入回话内容");
+        const res = await requestGas({ action:'replyMessage', nickname:currentQueryName, password:currentQueryPwd, msgId, content }, null);
+        showToast(res.message);
+        if (res.success) { area.style.display = 'none'; area.querySelector('textarea').value = ''; }
+    }
+
+    function escHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── 收到啦 ──
     async function loadFeedback() {
-        const res = await requestGas({ action: 'getFeedback' }, null);
+        const res = await requestGas({ action:'getFeedback' }, null);
         if (!res.success) { showToast("加载失败，请重试"); return; }
-
         const feedbacks = res.feedbacks || [];
         const revealed = res.revealed;
-        document.getElementById('feedback-status').textContent =
-            revealed ? '答案已揭晓 🎉' : '实时动态（每20秒自动刷新）';
-
+        document.getElementById('feedback-status').textContent = revealed ? '答案已揭晓 🎉' : '实时动态（每20秒自动刷新）';
         const wrap = document.getElementById('feedback-table-wrap');
-        if (feedbacks.length === 0) {
-            wrap.innerHTML = '<p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">还没有人收到哦，等等吧～</p>';
-            return;
-        }
-
+        if (!feedbacks.length) { wrap.innerHTML = '<p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">还没有人收到哦，等等吧～</p>'; return; }
         let html = '<table class="feedback-table"><thead><tr><th>昵称</th><th>收到时间</th><th>收到了什么</th><th>猜是谁</th><th></th></tr></thead><tbody>';
-        feedbacks.forEach(function(f) {
+        feedbacks.forEach(f => {
             let guessCell = '';
             if (revealed && f.revealResult) {
-                if (f.revealResult === '✓') {
-                    guessCell = '<span class="guess-correct">' + (f.guess || '—') + ' ✓</span>';
-                } else {
-                    guessCell = '<span class="guess-wrong"><s>' + (f.guess || '未猜') + '</s><span class="actual">→ ' + f.revealResult + '</span></span>';
-                }
-            } else {
-                guessCell = f.guess ? f.guess : '<span class="empty-cell">未填</span>';
-            }
-            html += '<tr>'
-                + '<td><strong>' + f.nickname + '</strong></td>'
-                + '<td>' + (f.receivedTime || '<span class="empty-cell">—</span>') + '</td>'
-                + '<td>' + (f.receivedContent || '<span class="empty-cell">—</span>') + '</td>'
+                if (f.revealResult === '✓') guessCell = '<span class="guess-correct">' + (f.guess||'—') + ' ✓</span>';
+                else guessCell = '<span class="guess-wrong"><s>' + (f.guess||'未猜') + '</s><span class="actual">→ ' + f.revealResult + '</span></span>';
+            } else { guessCell = f.guess || '<span class="empty-cell">未填</span>'; }
+            html += '<tr><td><strong>' + f.nickname + '</strong></td>'
+                + '<td>' + (f.receivedTime||'<span class="empty-cell">—</span>') + '</td>'
+                + '<td>' + (f.receivedContent||'<span class="empty-cell">—</span>') + '</td>'
                 + '<td>' + guessCell + '</td>'
-                + '<td><button class="btn-fill" onclick="openModal(\'' + f.nickname + '\')">填写</button></td>'
-                + '</tr>';
+                + '<td><button class="btn-fill" onclick="openModal(\'' + f.nickname + '\')">填写</button></td></tr>';
         });
         html += '</tbody></table>';
         wrap.innerHTML = html;
@@ -800,78 +665,87 @@
     function openModal(nickname) {
         modalTargetNickname = nickname;
         document.getElementById('modal-name-hint').textContent = '昵称：' + nickname;
-        document.getElementById('modal-pwd').value = '';
-        document.getElementById('modal-time').value = '';
-        document.getElementById('modal-content').value = '';
-
-        // 填充猜测下拉框
+        ['modal-pwd','modal-time','modal-content'].forEach(id => document.getElementById(id).value = '');
         const sel = document.getElementById('modal-guess');
         sel.innerHTML = '<option value="">-- 我猜是…… --</option>';
-        currentNicknameList.forEach(function(n) {
-            if (n !== nickname) {
-                const opt = document.createElement('option');
-                opt.value = n; opt.textContent = n;
-                sel.appendChild(opt);
-            }
+        currentNicknameList.forEach(n => {
+            if (n !== nickname) { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); }
         });
-
         document.getElementById('feedbackModal').classList.add('show');
     }
 
-    function closeModal() {
-        document.getElementById('feedbackModal').classList.remove('show');
-        modalTargetNickname = '';
-    }
+    function closeModal() { document.getElementById('feedbackModal').classList.remove('show'); }
 
     async function submitFeedback() {
         const pwd = document.getElementById('modal-pwd').value.trim();
-        const time = document.getElementById('modal-time').value.trim();
-        const content = document.getElementById('modal-content').value.trim();
-        const guess = document.getElementById('modal-guess').value;
         if (!pwd) return showToast("请输入密码");
         const res = await requestGas({
-            action: 'submitFeedback',
-            nickname: modalTargetNickname,
-            password: pwd,
-            receivedTime: time,
-            receivedContent: content,
-            guess: guess
+            action:'submitFeedback', nickname:modalTargetNickname, password:pwd,
+            receivedTime:document.getElementById('modal-time').value.trim(),
+            receivedContent:document.getElementById('modal-content').value.trim(),
+            guess:document.getElementById('modal-guess').value
         }, 'btn-modal-submit');
         showToast(res.message);
         if (res.success) { closeModal(); loadFeedback(); }
     }
 
-    // ── 管理员 ───────────────────────────────
-
+    // ── 管理员 ──
     function verifyAdmin() {
-        const key = document.getElementById('admin-key').value;
-        if (key === '08270430') {
+        if (document.getElementById('admin-key').value === '08270430') {
             document.getElementById('admin-lock').style.display = 'none';
             document.getElementById('admin-panel').style.display = 'block';
-        } else {
-            showToast("暗号不对");
-            document.getElementById('admin-key').value = '';
-        }
+            buildNicknameChecks();
+        } else { showToast("暗号不对"); document.getElementById('admin-key').value = ''; }
+    }
+
+    function buildNicknameChecks() {
+        const wrap = document.getElementById('nicknameChecks');
+        wrap.innerHTML = currentNicknameList.map(n =>
+            '<label><input type="checkbox" value="' + n + '"> ' + n + '</label>'
+        ).join('');
+    }
+
+    function selectAll(containerId) {
+        document.querySelectorAll('#' + containerId + ' input[type="checkbox"]').forEach(cb => cb.checked = true);
+    }
+
+    async function adminQuery() {
+        const nicknames = Array.from(document.querySelectorAll('#nicknameChecks input:checked')).map(cb => cb.value);
+        const fields = Array.from(document.querySelectorAll('#fieldChecks input:checked')).map(cb => cb.value);
+        if (!nicknames.length) return showToast("请至少选择一个成员");
+        if (!fields.length) return showToast("请至少选择一个字段");
+        const res = await requestGas({ action:'getDetails', password:'08270430', nicknames, fields }, 'btn-query-admin');
+        if (!res.success) { showToast(res.message); return; }
+        const wrap = document.getElementById('adminQueryResult');
+        if (!res.rows.length) { wrap.innerHTML = '<p style="font-size:13px;color:#bbb;margin-top:12px">没有找到数据</p>'; return; }
+        let html = '<table class="query-table" style="margin-top:14px"><thead><tr><th>昵称</th>';
+        res.fields.forEach(f => { html += '<th>' + (res.labels[f]||f) + '</th>'; });
+        html += '</tr></thead><tbody>';
+        res.rows.forEach(row => {
+            html += '<tr><td class="nm">' + row.nickname + '</td>';
+            res.fields.forEach(f => { html += '<td>' + (row[f]||'—') + '</td>'; });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
     }
 
     async function submitAssign() {
         if (!confirm("确认截止报名并开始随机分配吗？分配后无法撤销。")) return;
-        const res = await requestGas({ action: 'assign', password: '08270430' }, 'btn-assign');
-        showToast(res.message);
-        if (res.success) loadList();
+        const res = await requestGas({ action:'assign', password:'08270430' }, 'btn-assign');
+        showToast(res.message); if (res.success) loadList();
     }
 
     async function submitReveal() {
         if (!confirm("确认现在公布答案吗？揭晓后所有人都能看到谁猜对了。")) return;
-        const res = await requestGas({ action: 'reveal', password: '08270430' }, 'btn-reveal');
-        showToast(res.message);
-        if (res.success) loadFeedback();
+        const res = await requestGas({ action:'reveal', password:'08270430' }, 'btn-reveal');
+        showToast(res.message); if (res.success) loadFeedback();
     }
 
     async function submitReset() {
         if (!confirm("确认清空全部数据并开启新一轮吗？\n\n此操作完全不可逆！")) return;
-        if (!confirm("再次确认：所有报名数据、分配结果、收到记录都将被清除。")) return;
-        const res = await requestGas({ action: 'reset', password: '08270430' }, 'btn-reset');
+        if (!confirm("再次确认：所有报名数据、分配结果、收到记录、站内消息都将被清除。")) return;
+        const res = await requestGas({ action:'reset', password:'08270430' }, 'btn-reset');
         showToast(res.message);
         if (res.success) {
             document.getElementById('query-result').style.display = 'none';
@@ -882,10 +756,7 @@
         }
     }
 
-    window.onload = function() {
-        loadList();
-        refreshTimer = setInterval(loadList, 20000);
-    };
+    window.onload = function() { loadList(); refreshTimer = setInterval(loadList, 20000); };
 </script>
 </body>
 </html>
