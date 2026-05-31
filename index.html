@@ -166,6 +166,13 @@
         @keyframes secretShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-8px)}35%{transform:translateX(8px)}55%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
         .secret-box.shake{animation:secretShake .45s ease;}
 
+        /* Toggle开关 */
+        .toggle-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;}
+        .toggle-switch input{opacity:0;width:0;height:0;}
+        .toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ddd;border-radius:24px;transition:.2s;}
+        .toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+        .toggle-switch input:checked + .toggle-slider{background:var(--accent);}
+        .toggle-switch input:checked + .toggle-slider:before{transform:translateX(20px);}
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;}
         .modal-overlay.show{display:flex;}
         .modal-box{background:#fff;border-radius:12px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(0,0,0,.15);}
@@ -229,6 +236,13 @@
         </button>
     </div>
     <div class="drawer-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 14px;">
+            <span style="font-size:13px;color:var(--light);line-height:1.5">允许互送<br><span style="font-size:11px;color:#bbb">关闭后两人不会互相对送</span></span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="toggle-mutual" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
         <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
         <button class="secondary" id="btn-reveal" onclick="submitReveal()">公布答案</button>
         <button class="danger" id="btn-reset" onclick="submitReset()">重置表格（开启新一轮）</button>
@@ -447,7 +461,7 @@
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwN9sOFGzf1k9aocwi31bpCnBVq_ApGN0ZhkOk-OhjSt-Glb9r0yz45r7T3gKfmh0VnJw/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxUDNY65ZQ6FRANNPLPBXO0uvnbAVE7wE4YWdeQf3jnfcs579sDarDZYCQWPi9u9KWsVQ/exec";
     let refreshTimer = null;
     let currentNicknameList = [];
     let modalTargetNickname = '';
@@ -924,7 +938,8 @@
 
     async function submitAssign() {
         if (!confirm("确认截止报名并开始随机分配吗？分配后无法撤销。")) return;
-        const res = await requestGas({ action:'assign', password:'08270430' }, 'btn-assign');
+        const allowMutual = document.getElementById('toggle-mutual').checked;
+        const res = await requestGas({ action:'assign', password:'08270430', allowMutual }, 'btn-assign');
         showToast(res.message);
         if (res.success) {
             document.getElementById('btn-assign').disabled=true;
