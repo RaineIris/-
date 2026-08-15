@@ -216,6 +216,20 @@
     </div>
 </div>
 
+<!-- 修改报名弹窗 -->
+<div class="secret-overlay" id="editRegisterOverlay" style="display:none" onclick="handleEditOverlayClick(event)">
+    <div class="secret-box" style="padding:22px 20px;max-width:340px">
+        <p class="secret-title">修改已报名信息</p>
+        <p style="font-size:12px;color:var(--light);margin:0 0 16px;line-height:1.6">请输入报名时使用的昵称和4位密码，验证成功后会自动填入原报名内容。</p>
+        <div class="modal-form-group"><label>昵称</label><input type="text" id="edit-name" placeholder="报名时填写的昵称"></div>
+        <div class="modal-form-group"><label>密码</label><input type="password" id="edit-pwd" inputmode="numeric" maxlength="4" placeholder="4位数字密码"></div>
+        <div class="modal-btns">
+            <button class="modal-btn-cancel" onclick="closeEditRegister()">取消</button>
+            <button class="modal-btn-confirm" onclick="loadRegistrationForEdit()">确定</button>
+        </div>
+    </div>
+</div>
+
 <!-- 浮动锁按钮 -->
 <button class="float-lock" id="floatLock" onclick="toggleDrawer()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -242,6 +256,15 @@
                 <input type="checkbox" id="toggle-mutual" checked>
                 <span class="toggle-slider"></span>
             </label>
+        </div>
+        <div style="padding:12px 0 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:4px 0 14px">
+            <div style="font-size:13px;margin-bottom:8px">定时截止</div>
+            <div style="display:flex;gap:8px;align-items:center">
+                <input type="datetime-local" id="deadline-input" style="flex:1;min-width:0">
+                <button class="secondary" id="btn-set-deadline" onclick="setDeadline()" style="white-space:nowrap">设置</button>
+            </div>
+            <div id="deadline-status" style="font-size:11px;color:#aaa;margin-top:7px;line-height:1.5">未设置自动截止</div>
+            <button class="secondary" id="btn-cancel-deadline" onclick="cancelDeadline()" style="display:none;margin-top:8px">取消定时截止</button>
         </div>
         <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
         <button class="secondary" id="btn-reveal" onclick="submitReveal()" disabled>公布答案</button>
@@ -323,6 +346,9 @@
 
         <!-- 报名 -->
         <div id="register" class="section active">
+            <div style="text-align:right;margin:-6px 0 16px">
+                <span id="edit-register-link" onclick="openEditRegister()" style="font-size:12px;color:#aaa;text-decoration:underline;cursor:pointer">已经报名？修改报名信息</span>
+            </div>
             <div class="form-group"><label>你的昵称（用于名单公示）</label><input type="text" id="reg-name" placeholder="输入昵称"></div>
             <div class="form-group"><label>设置查询密码（4位数字）</label><input type="password" id="reg-pwd" pattern="[0-9]*" inputmode="numeric" maxlength="4" placeholder="设置4位数字密码"></div>
             <div class="form-group"><label>你的QQ邮箱（用于接收自动通知）</label><input type="email" id="reg-email" placeholder="输入邮箱，如：123456@qq.com"></div>
@@ -473,6 +499,10 @@
     let isAssigned = false;
     let currentFeedbacks = [];
     let pressTimer = null;
+    let editingRegistration = false;
+    let editOriginalNickname = '';
+    let currentDeadline = '';
+    let registrationClosed = false;
 
     // ── 时间格式化 ──
     function fmtTime(raw) {
@@ -519,7 +549,7 @@
                 notice = document.createElement('div');
                 notice.id = 'registration-closed-notice';
                 notice.style.cssText = 'margin-top:12px;padding:10px 12px;background:#fdfaf8;border:1px solid #f2e6e1;border-radius:6px;color:var(--light);font-size:13px;text-align:center;';
-                notice.textContent = '本轮已经开始分配，报名入口已关闭。';
+                notice.textContent = '本轮报名已经截止，报名入口已关闭。';
                 btn.insertAdjacentElement('afterend', notice);
             }
         } else if (notice) {
@@ -586,10 +616,105 @@
         }
     }
 
+    function openEditRegister() {
+        if (registrationClosed) return showToast('本轮报名已经截止，不能再修改报名');
+        document.getElementById('edit-name').value='';
+        document.getElementById('edit-pwd').value='';
+        document.getElementById('editRegisterOverlay').style.display='flex';
+    }
+
+    function closeEditRegister() {
+        document.getElementById('editRegisterOverlay').style.display='none';
+    }
+
+    function handleEditOverlayClick(e) {
+        if (e.target.id === 'editRegisterOverlay') closeEditRegister();
+    }
+
+    async function loadRegistrationForEdit() {
+        const name=document.getElementById('edit-name').value.trim();
+        const pwd=document.getElementById('edit-pwd').value.trim();
+        if (!name || !pwd) return showToast('请输入昵称和密码');
+        if (pwd.length!==4 || isNaN(pwd)) return showToast('密码必须是4位数字');
+        const status=await requestGas({action:'getFeedback'},null);
+        if (status.success && status.closed) {
+            isAssigned=!!status.assigned; registrationClosed=true; setRegistrationClosed(true); closeEditRegister();
+            return showToast('本轮报名已经截止，不能再修改报名');
+        }
+        const res=await requestGas({action:'getRegistration',nickname:name,password:pwd},null);
+        if (!res.success) return showToast(res.message || '验证失败');
+        closeEditRegister();
+        editingRegistration=true;
+        editOriginalNickname=name;
+        fillRegistrationForm(res);
+        showToast('已载入你的报名信息，可以修改了');
+        window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    function fillRegistrationForm(res) {
+        document.getElementById('reg-name').value=res.nickname||'';
+        document.getElementById('reg-pwd').value=res.password||'';
+        document.getElementById('reg-email').value=res.email||'';
+        document.getElementById('reg-address').value=res.address||'';
+        const time=res.time||'我都行！';
+        if (time==='我都行！') document.querySelector('input[name="time-choice"][value="我都行！"]').checked=true;
+        else { document.querySelector('input[name="time-choice"][value="填写"]').checked=true; document.getElementById('reg-time-input').value=time; toggleInputDisplay('reg-time-input',true); }
+        const cats=(res.categories||'无所谓');
+        document.querySelectorAll('input[name="food-cate"]').forEach(c=>c.checked=false);
+        if (cats==='无所谓' || !cats) { document.getElementById('cate-any').checked=true; document.getElementById('cate-select').checked=false; toggleInputDisplay('cate-dropdown',false); }
+        else { document.getElementById('cate-any').checked=false; document.getElementById('cate-select').checked=true; toggleInputDisplay('cate-dropdown',true); cats.split('、').forEach(v=>{const c=Array.from(document.querySelectorAll('input[name="food-cate"]')).find(x=>x.value===v); if(c)c.checked=true;}); }
+        const remarks=res.remarks||'无';
+        if (remarks==='无') { document.getElementById('cate-remark').checked=false; toggleInputDisplay('reg-remarks-input',false); }
+        else { document.getElementById('cate-remark').checked=true; document.getElementById('reg-remarks-input').value=remarks; toggleInputDisplay('reg-remarks-input',true); }
+        const diet=res.diet||'无';
+        if (diet==='无') { document.querySelector('input[name="diet-choice"][value="无"]').checked=true; toggleInputDisplay('reg-diet',false); }
+        else { document.querySelector('input[name="diet-choice"][value="有"]').checked=true; document.getElementById('reg-diet').value=diet; toggleInputDisplay('reg-diet',true); }
+        const wish=res.wishlist||'无';
+        if (wish==='无') { document.querySelector('input[name="wish-choice"][value="无"]').checked=true; toggleInputDisplay('reg-wish-input',false); }
+        else { document.querySelector('input[name="wish-choice"][value="有"]').checked=true; document.getElementById('reg-wish-input').value=wish; toggleInputDisplay('reg-wish-input',true); }
+        document.getElementById('btn-submit').innerText='保存报名修改';
+    }
+
+    function formatDeadline(raw) {
+        if (!raw) return '';
+        const d=new Date(raw); if(isNaN(d.getTime())) return raw;
+        return d.toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+    }
+
+    function syncDeadlineUI(deadline, assigned) {
+        currentDeadline=deadline||'';
+        const input=document.getElementById('deadline-input');
+        const status=document.getElementById('deadline-status');
+        const cancel=document.getElementById('btn-cancel-deadline');
+        if (!input||!status||!cancel) return;
+        if (assigned) { status.textContent='本轮已经分配，定时截止已结束'; cancel.style.display='none'; return; }
+        if (deadline) { status.textContent='自动截止时间：'+formatDeadline(deadline); cancel.style.display='block'; }
+        else { status.textContent='未设置自动截止'; cancel.style.display='none'; }
+    }
+
+    async function setDeadline() {
+        if (isAssigned || registrationClosed) return showToast('本轮报名已经截止，不能设置定时截止');
+        const input=document.getElementById('deadline-input').value;
+        if (!input) return showToast('请选择截止日期和时间');
+        const when=new Date(input);
+        if (isNaN(when.getTime()) || when.getTime()<=Date.now()) return showToast('截止时间必须晚于现在');
+        const allowMutual=document.getElementById('toggle-mutual').checked;
+        const res=await requestGas({action:'setDeadline',password:'08270430',deadline:when.toISOString(),allowMutual},'btn-set-deadline');
+        showToast(res.message);
+        if(res.success) { currentDeadline=res.deadline; syncDeadlineUI(res.deadline,false); }
+    }
+
+    async function cancelDeadline() {
+        if (!confirm('确认取消本轮的定时截止吗？取消后仍可随时手动截止。')) return;
+        const res=await requestGas({action:'cancelDeadline',password:'08270430'},'btn-cancel-deadline');
+        showToast(res.message);
+        if(res.success) { currentDeadline=''; document.getElementById('deadline-input').value=''; syncDeadlineUI('',false); }
+    }
+
     async function submitRegister() {
-        if (isAssigned) {
+        if (registrationClosed) {
             setRegistrationClosed(true);
-            return showToast('本轮已经开始分配，报名已截止');
+            return showToast('本轮报名已经截止');
         }
         const name = document.getElementById('reg-name').value.trim();
         const pwd = document.getElementById('reg-pwd').value.trim();
@@ -612,6 +737,14 @@
         if (document.querySelector('input[name="diet-choice"]:checked').value==='有'&&!diet) return showToast("请填写忌口要求");
         const wishlist = document.querySelector('input[name="wish-choice"]:checked').value==='有' ? document.getElementById('reg-wish-input').value.trim() : "无";
         if (document.querySelector('input[name="wish-choice"]:checked').value==='有'&&!wishlist) return showToast("请写下你的愿望");
+        if (editingRegistration) {
+            if (!confirm('检测到你正在修改已有报名信息，确认覆盖原来的报名吗？')) return;
+            const res = await requestGas({ action:'updateRegister', originalNickname:editOriginalNickname, nickname:name, password:pwd, email, address:addr, time, categories, remarks, diet, wishlist }, 'btn-submit');
+            if (res.success) {
+                showToast('报名信息已更新！'); editingRegistration=false; editOriginalNickname=''; document.getElementById('btn-submit').innerText='提交报名'; loadList();
+            } else showToast(res.message);
+            return;
+        }
         const res = await requestGas({ action:'register', nickname:name, password:pwd, email, address:addr, time, categories, remarks, diet, wishlist }, 'btn-submit');
         if (res.success) {
             showToast("报名成功！");
@@ -624,6 +757,11 @@
             document.querySelectorAll('input[name="wish-choice"]')[0].checked=true;
             ['reg-time-input','cate-dropdown','reg-remarks-input','reg-diet','reg-wish-input'].forEach(id=>toggleInputDisplay(id,false));
             loadList();
+        } else if (res.duplicate) {
+            if (!confirm('检测到相同昵称已经报名，是否覆盖这份报名信息？\n\n只有密码正确时才能覆盖。')) return;
+            const overwrite = await requestGas({ action:'updateRegister', originalNickname:name, nickname:name, password:pwd, email, address:addr, time, categories, remarks, diet, wishlist }, 'btn-submit');
+            showToast(overwrite.success ? '报名信息已覆盖更新！' : overwrite.message);
+            if (overwrite.success) loadList();
         } else { showToast(res.message); }
     }
 
@@ -638,8 +776,10 @@
         const status = await requestGas({ action:'getFeedback' }, null);
         if (status.success) {
             isAssigned = !!status.assigned;
-            setRegistrationClosed(isAssigned);
+            registrationClosed = !!status.closed;
+            setRegistrationClosed(registrationClosed);
             if (adminUnlocked) syncAdminButtons(isAssigned, !!status.revealed);
+            if (adminUnlocked) syncDeadlineUI(status.deadline || '', isAssigned);
         }
     }
 
@@ -773,12 +913,13 @@
         if (!res.success) { showToast("加载失败，请重试"); return; }
         currentFeedbacks = res.feedbacks||[];
         isAssigned = !!res.assigned;
-        setRegistrationClosed(isAssigned);
+        registrationClosed = !!res.closed;
+        setRegistrationClosed(registrationClosed);
         const revealed = res.revealed;
         document.getElementById('feedback-status').textContent = revealed ? '答案已揭晓' : '实时动态（每20秒自动刷新）';
 
         // 根据真实状态同步管理员按钮：未分配时不能公布答案，已分配后不能再次分配
-        if (adminUnlocked) syncAdminButtons(!!res.assigned, !!revealed);
+        if (adminUnlocked) { syncAdminButtons(!!res.assigned, !!revealed); syncDeadlineUI(res.deadline || '', !!res.assigned); }
 
         const wrap = document.getElementById('feedback-table-wrap');
         if (!currentFeedbacks.length) { wrap.innerHTML='<p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">还没有人收到哦，等等吧～</p>'; return; }
@@ -1019,8 +1160,11 @@
             return showToast("无法确认当前分配状态，请刷新后重试");
         }
         isAssigned = !!status.assigned;
+        registrationClosed = !!status.closed;
         const revealed = !!status.revealed;
         syncAdminButtons(isAssigned, revealed);
+        syncDeadlineUI(status.deadline || '', isAssigned);
+        syncDeadlineUI(status.deadline || '', isAssigned);
         if (!isAssigned) {
             return showToast("请先完成分配，再公布答案");
         }
@@ -1045,8 +1189,11 @@
             sessionStorage.removeItem('assignDone');
             sessionStorage.removeItem('revealDone');
             isAssigned = false;
+            registrationClosed = false;
             setRegistrationClosed(false);
             syncAdminButtons(false, false);
+            syncDeadlineUI('', false);
+            document.getElementById('deadline-input').value='';
             document.getElementById('query-result').style.display='none';
             loadList();
         }
