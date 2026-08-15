@@ -244,7 +244,7 @@
             </label>
         </div>
         <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
-        <button class="secondary" id="btn-reveal" onclick="submitReveal()">公布答案</button>
+        <button class="secondary" id="btn-reveal" onclick="submitReveal()" disabled>公布答案</button>
         <button class="danger" id="btn-reset" onclick="submitReset()">重置表格（开启新一轮）</button>
         <p class="drawer-note">分配完成后数据保留供查询；揭晓后收货记录页面将显示猜测结果；重置将清空全部数据含消息记录。</p>
 
@@ -1012,9 +1012,20 @@
     }
 
     async function submitReveal() {
-        if (!isAssigned) {
+        // 点击时再次向服务器确认状态，避免管理员页面打开很久后状态过期。
+        const status = await requestGas({ action:'getFeedback' }, null);
+        if (!status || !status.success) {
             syncAdminButtons(false, false);
+            return showToast("无法确认当前分配状态，请刷新后重试");
+        }
+        isAssigned = !!status.assigned;
+        const revealed = !!status.revealed;
+        syncAdminButtons(isAssigned, revealed);
+        if (!isAssigned) {
             return showToast("请先完成分配，再公布答案");
+        }
+        if (revealed) {
+            return showToast("答案已经公布过了");
         }
         if (!confirm("确认现在公布答案吗？揭晓后所有人都能看到谁猜对了。")) return;
         const res = await requestGas({ action:'reveal', password:'08270430' }, 'btn-reveal');
