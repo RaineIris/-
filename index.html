@@ -487,6 +487,44 @@
         return m+'-'+day+' '+h+':'+min;
     }
 
+    // 收货时间：保持用户填写的 HH:mm，不显示 Google Sheets 的 Date 字符串
+    function fmtReceivedTime(raw) {
+        if (raw === null || raw === undefined || raw === '') return '';
+        const str = String(raw);
+        const timeMatch = str.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::\d{2})?/);
+        if (timeMatch) {
+            return String(timeMatch[1]).padStart(2,'0') + ':' + timeMatch[2];
+        }
+        if (/^\d{1,2}:\d{2}$/.test(str)) {
+            const parts = str.split(':');
+            return String(parts[0]).padStart(2,'0') + ':' + parts[1];
+        }
+        return str;
+    }
+
+    // 报名状态只用于防止正常用户误报名；真正的数据权限仍由后端决定
+    function setRegistrationClosed(closed) {
+        const btn = document.getElementById('btn-submit');
+        const section = document.getElementById('register');
+        if (!btn || !section) return;
+        const fields = section.querySelectorAll('input, textarea, select');
+        fields.forEach(el => { el.disabled = !!closed; });
+        btn.disabled = !!closed;
+        btn.innerText = closed ? '报名已截止' : '提交报名';
+        let notice = document.getElementById('registration-closed-notice');
+        if (closed) {
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.id = 'registration-closed-notice';
+                notice.style.cssText = 'margin-top:12px;padding:10px 12px;background:#fdfaf8;border:1px solid #f2e6e1;border-radius:6px;color:var(--light);font-size:13px;text-align:center;';
+                notice.textContent = '本轮已经开始分配，报名入口已关闭。';
+                btn.insertAdjacentElement('afterend', notice);
+            }
+        } else if (notice) {
+            notice.remove();
+        }
+    }
+
     function showToast(msg) {
         const t = document.getElementById('toast');
         t.textContent = msg; t.style.opacity = '1';
@@ -547,6 +585,10 @@
     }
 
     async function submitRegister() {
+        if (isAssigned) {
+            setRegistrationClosed(true);
+            return showToast('本轮已经开始分配，报名已截止');
+        }
         const name = document.getElementById('reg-name').value.trim();
         const pwd = document.getElementById('reg-pwd').value.trim();
         const email = document.getElementById('reg-email').value.trim();
@@ -589,6 +631,12 @@
             currentNicknameList = res.list||[];
             document.getElementById('user-count').innerText = res.count;
             document.getElementById('user-list').innerText = res.count===0 ? '（暂无数据）' : res.list.join('，');
+        }
+        // 报名页也同步检查分配状态，避免页面一直开着时状态过期
+        const status = await requestGas({ action:'getFeedback' }, null);
+        if (status.success) {
+            isAssigned = !!status.assigned;
+            setRegistrationClosed(isAssigned);
         }
     }
 
@@ -722,6 +770,7 @@
         if (!res.success) { showToast("加载失败，请重试"); return; }
         currentFeedbacks = res.feedbacks||[];
         isAssigned = !!res.assigned;
+        setRegistrationClosed(isAssigned);
         const revealed = res.revealed;
         document.getElementById('feedback-status').textContent = revealed ? '答案已揭晓' : '实时动态（每20秒自动刷新）';
 
@@ -745,7 +794,7 @@
             const btnLabel = hasData ? '修改' : '填写';
             const btnClass = hasData ? 'btn-fill modify' : 'btn-fill';
             html += '<tr><td><strong>'+f.nickname+'</strong></td>'
-                + '<td>'+(f.receivedTime||'<span class="empty-cell">—</span>')+'</td>'
+                + '<td>'+(f.receivedTime ? fmtReceivedTime(f.receivedTime) : '<span class="empty-cell">—</span>')+'</td>'
                 + '<td>'+(f.receivedContent||'<span class="empty-cell">—</span>')+'</td>'
                 + '<td>'+guessCell+'</td>'
                 + (revealed ? '' : '<td><button class="'+btnClass+'" onclick="openModal(\''+f.nickname+'\')">'+btnLabel+'</button></td>')
@@ -967,6 +1016,8 @@
         if (res.success) {
             sessionStorage.removeItem('assignDone');
             sessionStorage.removeItem('revealDone');
+            isAssigned = false;
+            setRegistrationClosed(false);
             ['btn-assign','btn-reveal'].forEach(id=>{
                 const b=document.getElementById(id); if(b) b.disabled=false;
             });
