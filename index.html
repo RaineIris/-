@@ -639,6 +639,7 @@
         if (status.success) {
             isAssigned = !!status.assigned;
             setRegistrationClosed(isAssigned);
+            if (adminUnlocked) syncAdminButtons(isAssigned, !!status.revealed);
         }
     }
 
@@ -776,12 +777,8 @@
         const revealed = res.revealed;
         document.getElementById('feedback-status').textContent = revealed ? '答案已揭晓' : '实时动态（每20秒自动刷新）';
 
-        // 揭晓后锁住公布答案按钮
-        if (revealed) {
-            const btn = document.getElementById('btn-reveal');
-            if (btn) { btn.disabled=true; }
-            sessionStorage.setItem('revealDone','1');
-        }
+        // 根据真实状态同步管理员按钮：未分配时不能公布答案，已分配后不能再次分配
+        if (adminUnlocked) syncAdminButtons(!!res.assigned, !!revealed);
 
         const wrap = document.getElementById('feedback-table-wrap');
         if (!currentFeedbacks.length) { wrap.innerHTML='<p style="text-align:center;color:#bbb;font-size:14px;padding:20px 0">还没有人收到哦，等等吧～</p>'; return; }
@@ -887,12 +884,9 @@
             adminUnlocked = true;
             document.getElementById('floatLock').style.display='flex';
             buildNicknameChecks();
-            if (sessionStorage.getItem('assignDone')==='1') {
-                const b=document.getElementById('btn-assign'); if(b) b.disabled=true;
-            }
-            if (sessionStorage.getItem('revealDone')==='1') {
-                const b=document.getElementById('btn-reveal'); if(b) b.disabled=true;
-            }
+            // 解锁管理员界面后立即读取后端真实状态，避免旧 sessionStorage 导致按钮状态错误
+            loadFeedback();
+            loadList();
         } else {
             const box = document.getElementById('secretBox');
             box.classList.add('shake');
@@ -988,25 +982,45 @@
         a.click();
     }
 
+    function syncAdminButtons(assigned, revealed) {
+        const assignBtn = document.getElementById('btn-assign');
+        const revealBtn = document.getElementById('btn-reveal');
+        if (assignBtn) assignBtn.disabled = !!assigned;
+        // 只有已经完成分配、但还没有揭晓答案时，才允许公布答案
+        if (revealBtn) revealBtn.disabled = !assigned || !!revealed;
+        if (assigned) sessionStorage.setItem('assignDone','1');
+        else sessionStorage.removeItem('assignDone');
+        if (revealed) sessionStorage.setItem('revealDone','1');
+        else sessionStorage.removeItem('revealDone');
+    }
+
     async function submitAssign() {
+        if (isAssigned) {
+            syncAdminButtons(true, false);
+            return showToast("本轮已经分配完成，不能重复分配");
+        }
         if (!confirm("确认截止报名并开始随机分配吗？分配后无法撤销。")) return;
         const allowMutual = document.getElementById('toggle-mutual').checked;
         const res = await requestGas({ action:'assign', password:'08270430', allowMutual }, 'btn-assign');
         showToast(res.message);
         if (res.success) {
-            document.getElementById('btn-assign').disabled=true;
-            sessionStorage.setItem('assignDone','1');
+            isAssigned = true;
+            syncAdminButtons(true, false);
+            setRegistrationClosed(true);
             loadList();
         }
     }
 
     async function submitReveal() {
+        if (!isAssigned) {
+            syncAdminButtons(false, false);
+            return showToast("请先完成分配，再公布答案");
+        }
         if (!confirm("确认现在公布答案吗？揭晓后所有人都能看到谁猜对了。")) return;
         const res = await requestGas({ action:'reveal', password:'08270430' }, 'btn-reveal');
         showToast(res.message);
         if (res.success) {
-            document.getElementById('btn-reveal').disabled=true;
-            sessionStorage.setItem('revealDone','1');
+            syncAdminButtons(true, true);
             loadFeedback();
         }
     }
@@ -1021,9 +1035,7 @@
             sessionStorage.removeItem('revealDone');
             isAssigned = false;
             setRegistrationClosed(false);
-            ['btn-assign','btn-reveal'].forEach(id=>{
-                const b=document.getElementById(id); if(b) b.disabled=false;
-            });
+            syncAdminButtons(false, false);
             document.getElementById('query-result').style.display='none';
             loadList();
         }
