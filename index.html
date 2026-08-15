@@ -490,15 +490,17 @@
     // 收货时间：保持用户填写的 HH:mm，不显示 Google Sheets 的 Date 字符串
     function fmtReceivedTime(raw) {
         if (raw === null || raw === undefined || raw === '') return '';
-        const str = String(raw);
+        const str = String(raw).trim();
+
+        // 如果本来就是用户填写的时间，原样保留。
+        if (/^\d{1,2}:\d{2}$/.test(str)) return str;
+
+        // Google Sheets 返回 Date 字符串时，只提取 HH:mm。
         const timeMatch = str.match(/(?:T|\s)(\d{1,2}):(\d{2})(?::\d{2})?/);
         if (timeMatch) {
             return String(timeMatch[1]).padStart(2,'0') + ':' + timeMatch[2];
         }
-        if (/^\d{1,2}:\d{2}$/.test(str)) {
-            const parts = str.split(':');
-            return String(parts[0]).padStart(2,'0') + ':' + parts[1];
-        }
+
         return str;
     }
 
@@ -817,7 +819,8 @@
         document.getElementById('modal-pwd').value='';
         // 预填上次数据
         if (existing) {
-            document.getElementById('modal-time').value = existing.receivedTime||'';
+            // 编辑已有记录时，不把 Google Sheets 的 Date 字符串直接塞进输入框。
+            document.getElementById('modal-time').value = fmtReceivedTime(existing.receivedTime||'');
             document.getElementById('modal-content').value = existing.receivedContent||'';
         } else {
             document.getElementById('modal-time').value='';
