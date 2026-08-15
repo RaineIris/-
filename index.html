@@ -258,13 +258,13 @@
             </label>
         </div>
         <div style="padding:12px 0 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:4px 0 14px">
-            <div style="font-size:13px;margin-bottom:8px">定时截止</div>
-            <div style="display:flex;gap:8px;align-items:center">
-                <input type="datetime-local" id="deadline-input" style="flex:1;min-width:0">
-                <button class="secondary" id="btn-set-deadline" onclick="setDeadline()" style="white-space:nowrap">设置</button>
-            </div>
-            <div id="deadline-status" style="font-size:11px;color:#aaa;margin-top:7px;line-height:1.5">未设置自动截止</div>
-            <button class="secondary" id="btn-cancel-deadline" onclick="cancelDeadline()" style="display:none;margin-top:8px">取消定时截止</button>
+            <div style="font-size:13px;margin-bottom:9px">定时截止</div>
+            <div style="font-size:11px;color:#aaa;line-height:1.5;margin-bottom:7px">到时间后会自动截止报名、随机分配并发送邮件。</div>
+            <input type="datetime-local" id="deadline-input" onchange="previewDeadline()" style="display:block;width:100%;box-sizing:border-box;margin-bottom:8px">
+            <div id="deadline-preview" style="font-size:12px;color:#999;line-height:1.5;min-height:18px;margin-bottom:8px">请选择日期和时间</div>
+            <button class="secondary" id="btn-set-deadline" onclick="setDeadline()" style="display:block;width:100%">设置定时截止</button>
+            <div id="deadline-status" style="font-size:11px;color:#aaa;margin-top:8px;line-height:1.5">未设置自动截止</div>
+            <button class="secondary" id="btn-cancel-deadline" onclick="cancelDeadline()" style="display:none;width:100%;margin-top:8px">取消定时截止</button>
         </div>
         <button class="primary" id="btn-assign" onclick="submitAssign()">截止报名并触发邮件分配</button>
         <button class="secondary" id="btn-reveal" onclick="submitReveal()" disabled>公布答案</button>
@@ -681,15 +681,43 @@
         return d.toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
     }
 
+    function previewDeadline() {
+        const input=document.getElementById('deadline-input');
+        const preview=document.getElementById('deadline-preview');
+        if (!input||!preview) return;
+        if (!input.value) { preview.textContent='请选择日期和时间'; return; }
+        const when=new Date(input.value);
+        preview.textContent=isNaN(when.getTime()) ? '时间格式无效' : '已选择：'+formatDeadline(when.toISOString());
+    }
+
     function syncDeadlineUI(deadline, assigned) {
         currentDeadline=deadline||'';
         const input=document.getElementById('deadline-input');
         const status=document.getElementById('deadline-status');
         const cancel=document.getElementById('btn-cancel-deadline');
+        const preview=document.getElementById('deadline-preview');
         if (!input||!status||!cancel) return;
-        if (assigned) { status.textContent='本轮已经分配，定时截止已结束'; cancel.style.display='none'; return; }
-        if (deadline) { status.textContent='自动截止时间：'+formatDeadline(deadline); cancel.style.display='block'; }
-        else { status.textContent='未设置自动截止'; cancel.style.display='none'; }
+        if (assigned) {
+            status.textContent='本轮已经分配，定时截止已结束';
+            cancel.style.display='none';
+            if (preview) preview.textContent='';
+            return;
+        }
+        if (deadline) {
+            const formatted=formatDeadline(deadline);
+            status.textContent='已设置自动截止：'+formatted;
+            cancel.style.display='block';
+            if (preview) preview.textContent='当前截止时间：'+formatted;
+            try {
+                const d=new Date(deadline);
+                const pad=n=>String(n).padStart(2,'0');
+                input.value=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+            } catch(e) {}
+        } else {
+            status.textContent='未设置自动截止';
+            cancel.style.display='none';
+            if (preview) preview.textContent=input.value ? preview.textContent : '请选择日期和时间';
+        }
     }
 
     async function setDeadline() {
@@ -1164,7 +1192,6 @@
         const revealed = !!status.revealed;
         syncAdminButtons(isAssigned, revealed);
         syncDeadlineUI(status.deadline || '', isAssigned);
-        syncDeadlineUI(status.deadline || '', isAssigned);
         if (!isAssigned) {
             return showToast("请先完成分配，再公布答案");
         }
@@ -1199,7 +1226,7 @@
         }
     }
 
-    window.onload = function() { loadList(); refreshTimer = setInterval(loadList, 20000); };
+    window.onload = function() { loadList(); previewDeadline(); refreshTimer = setInterval(loadList, 20000); };
 </script>
 </body>
 </html>
